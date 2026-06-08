@@ -157,15 +157,18 @@
 
 <script src="js/app.js"></script>
 <script>
-  window.API = "http://localhost/bloomify_FINAL/bloomify_final/api";
+const API = "http://localhost/bloomify_FINAL/bloomify_final/api";
 (async () => {
   try {
-    const res = await fetch(`${API}/auth.php?action=check`, {
+    const res = await fetch(`${window.API}/auth.php?action=check`, {
       credentials: "include",
       cache: "no-store"
     });
 
-    const data = await res.json();
+    const text = await res.text();
+console.log("REGISTER RESPONSE:", text);
+
+const data = JSON.parse(text);
 
     console.log("SESSION CHECK:", data);
 
@@ -190,7 +193,7 @@
 </script>
 
 <script>
-const API = "http://localhost/bloomify_FINAL/bloomify_final/api";
+
 
 /* ================= TAB SWITCH ================= */
 function switchTab(tab) {
@@ -211,36 +214,31 @@ function switchTab(tab) {
   }
 }
 
+
+
 /* ================= LOGIN ================= */
 async function handleLogin() {
-  try {
-    const res = await fetch(`${API}/auth.php?action=login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        email: document.getElementById("login-email").value,
-        password: document.getElementById("login-password").value
-      })
-    });
 
-    const data = await res.json();
-    console.log(data);
+  const email = document.getElementById("login-email").value;
+  const password = document.getElementById("login-password").value;
 
-    if (!data.success) {
-      alert(data.message || "Login failed");
-      return;
-    }
+  const res = await fetch(`${API}/auth.php?action=login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ email, password })
+  });
 
+  const data = await res.json();
+
+  if (data.success) {
     if (data.user.role === "admin") {
       window.location.href = "admin.html";
     } else {
       window.location.href = "index.html";
     }
-
-  } catch (err) {
-    console.error(err);
-    alert("Network error");
+  } else {
+    alert(data.message);
   }
 }
 

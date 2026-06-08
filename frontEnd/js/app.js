@@ -1,8 +1,6 @@
-fetch("http://localhost/bloomify_FINAL/bloomify_final/api/auth.php?action=logout", {
-  credentials: "include"
-});
 
-// ---------------- CART ----------------
+
+// ---------------- CART (LOCAL CACHE) ----------------
 let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
 function saveCart() {
@@ -17,7 +15,7 @@ function updateCartCount(n) {
   });
 }
 
-// ---------------- ADD TO CART ----------------
+// ---------------- ADD TO CART (BACKEND) ----------------
 async function addToCart(btn, flowerId) {
   try {
     btn.disabled = true;
@@ -27,6 +25,7 @@ async function addToCart(btn, flowerId) {
       headers: {
         "Content-Type": "application/json"
       },
+      credentials: "include",
       body: JSON.stringify({
         flower_id: flowerId
       })
@@ -38,29 +37,32 @@ async function addToCart(btn, flowerId) {
     try {
       data = JSON.parse(text);
     } catch (e) {
-      console.error("Server returned:", text);
-      throw new Error("Invalid JSON from server");
+      console.error("Invalid server response:", text);
+      throw new Error("Server returned non-JSON");
     }
 
     if (data.success) {
       btn.innerHTML = "✔ Added";
       btn.classList.add("added");
+
+      // optional local sync
+      cart.push({ id: flowerId, qty: 1 });
+      saveCart();
+
     } else {
       alert(data.message || "Failed to add to cart");
     }
 
   } catch (err) {
-    console.error("Error adding to cart:", err);
-    alert("Error adding to cart. Check console.");
+    console.error("Cart error:", err);
+    alert("Error adding to cart");
   } finally {
     btn.disabled = false;
   }
 }
 
-
-
+// ---------------- TOAST ----------------
 window.showToast = function(message, type = "success") {
-
   let container = document.getElementById("toast-container");
 
   if (!container) {
@@ -88,12 +90,10 @@ window.showToast = function(message, type = "success") {
 
   container.appendChild(toast);
 
-  setTimeout(() => {
-    toast.remove();
-  }, 2500);
+  setTimeout(() => toast.remove(), 2500);
 };
 
-// ---------------- LOAD CART ----------------
+// ---------------- CART HELPERS ----------------
 function getCart() {
   return cart;
 }
@@ -103,6 +103,7 @@ function clearCart() {
   saveCart();
 }
 
+// ---------------- LOGOUT (FIXED SINGLE VERSION) ----------------
 function handleLogout() {
   fetch(`${API}/auth.php?action=logout`, {
     method: "GET",
@@ -115,6 +116,5 @@ function handleLogout() {
   });
 }
 
-
-// init
+// ---------------- INIT ----------------
 updateCartCount(cart.reduce((a, b) => a + b.qty, 0));
