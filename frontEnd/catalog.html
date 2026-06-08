@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flower Catalog — Bloomify</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .skel-card{width:300px;height:420px;background:linear-gradient(90deg,#f0e8e0 25%,#f7f0e8 50%,#f0e8e0 75%);background-size:200% 100%;border-radius:var(--radius);animation:shimmer 1.4s infinite;flex-shrink:0;}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    .out-of-stock{opacity:.55;}.out-of-stock .btn-add{background:var(--border);color:var(--text-muted);cursor:not-allowed;}
+    .stock-badge{display:inline-block;font-size:11px;background:#f8d7da;color:#721c24;padding:2px 8px;border-radius:20px;font-weight:500;margin-top:4px;}
+  </style>
+</head>
+<body>
+<header class="navbar">
+  <a href="index.html" class="logo">Bloom<span>ify</span></a>
+  <nav><ul>
+    <li><a href="index.html">Home</a></li>
+    <li><a href="catalog.html" class="active">Flowers</a></li>
+    <li><a href="customize.html">Customize</a></li>
+    <li id="nav-login-link"><a href="login.html">Login</a></li>
+  </ul></nav>
+  <div class="nav-right">
+    <div id="nav-user-info" style="display:none;align-items:center;gap:10px;">
+      <span style="font-size:13px;color:var(--text-muted);font-weight:500;"><i class="fa-solid fa-circle" style="color:var(--accent);font-size:8px;"></i> <span id="nav-user-name"></span></span>
+      <button onclick="handleLogout()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--primary);font-weight:500;">Logout</button>
+    </div>
+    <a href="cart.html" class="nav-cart-btn"><i class="fa-solid fa-basket-shopping"></i><span id="cart-count" style="display:none;">0</span></a>
+  </div>
+</header>
+
+<div class="page-header">
+  <h1>Flower Catalog</h1>
+  <p>Curated selections, each with a story to tell</p>
+  <div class="ornament"><i class="fa-solid fa-leaf"></i></div>
+</div>
+
+<section class="catalog" id="catalog-loading">
+  <div class="skel-card"></div><div class="skel-card"></div><div class="skel-card"></div>
+</section>
+<section class="catalog" id="catalog-grid" style="display:none;"></section>
+
+<footer>
+  <a href="index.html" class="logo">Bloom<span>ify</span></a>
+  <p>© 2026 Bloomify. All rights reserved.</p>
+  <p>Made with 🌸 for every occasion</p>
+</footer>
+<script src="js/app.js"></script>
+<script>
+  const API = "http://localhost/bloomify_FINAL/bloomify_final/api";
+  async function loadProducts() {
+    try {
+      const r = await fetch(`${API}/products.php?action=all`);
+      const d = await r.json();
+      document.getElementById('catalog-loading').style.display = 'none';
+      const grid = document.getElementById('catalog-grid');
+      grid.style.display = '';
+      if (!d.success || !d.products.length) {
+        grid.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:60px;">No flowers available.</p>';
+        return;
+      }
+      grid.innerHTML = d.products.map((p,i) => `
+        <div class="flower-card fade-up delay-${(i%3)+1} ${!p.in_stock?'out-of-stock':''}">
+          <div class="flower-card-img">
+            <div style="display:flex;align-items:center;justify-content:center;height:220px;font-size:90px;background:linear-gradient(135deg,#fdf8f2,#f7dce4);">${p.emoji}</div>
+            ${p.tag?`<span class="flower-tag">${p.tag}</span>`:''}
+          </div>
+          <div class="flower-card-body">
+            <h3>${p.name}</h3>
+            <p class="meaning">${p.meaning}</p>
+            ${!p.in_stock?'<span class="stock-badge">Out of Stock</span>':''}
+          </div>
+          <div class="flower-card-footer">
+            <span class="price">$${parseFloat(p.price).toFixed(2)}</span>
+            <button class="btn-add" onclick="addToCart(this, ${p.id}, '${p.name}', ${p.price})" ${!p.in_stock?'disabled':''}>
+              <i class="fa-solid fa-plus"></i> Add
+            </button>
+          </div>
+        </div>`).join('') + `
+        <div class="flower-card fade-up delay-3" style="background:linear-gradient(135deg,#fdf8f2,#f7dce4);display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:420px;text-align:center;gap:12px;">
+          <span style="font-size:52px;">🌸</span>
+          <h3 style="font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;">More Arriving Soon</h3>
+          <p style="color:var(--text-muted);font-size:14px;padding:0 24px;">New varieties coming shortly.</p>
+          <a href="customize.html" class="btn-secondary" style="margin-top:8px;"><i class="fa-solid fa-wand-magic-sparkles"></i> Build Custom Bouquet</a>
+        </div>`;
+      requestAnimationFrame(() => document.querySelectorAll('.fade-up').forEach(el => el.style.animationPlayState='running'));
+    } catch(e) {
+      document.getElementById('catalog-loading').style.display='none';
+      document.getElementById('catalog-grid').style.display='';
+      document.getElementById('catalog-grid').innerHTML='<p style="text-align:center;color:var(--text-muted);padding:60px;">Could not load products. Check your database connection.</p>';
+    }
+  }
+  loadProducts();
+</script>
+</body>
+</html>

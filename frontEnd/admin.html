@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — Bloomify</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+
+  <style>
+    .admin-tabs{display:flex;gap:8px;padding:0 8%;margin-bottom:32px;flex-wrap:wrap;}
+    .admin-tab-btn{padding:10px 22px;border:1px solid var(--border);border-radius:30px;background:var(--bg);cursor:pointer;}
+    .admin-tab-btn.active{background:var(--primary);color:#fff;}
+    .tab-content{display:none;padding:0 8% 60px;}
+    .tab-content.active{display:block;}
+
+    .product-form{background:var(--surface);padding:24px;border-radius:12px;margin-bottom:20px;}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .form-row.triple{grid-template-columns:1fr 1fr 1fr;}
+    input{padding:10px;border:1px solid var(--border);border-radius:8px;width:100%;}
+    button{cursor:pointer;}
+  </style>
+</head>
+
+<body>
+
+<header class="navbar">
+  <a href="index.html" class="logo">Bloom<span>ify</span></a>
+
+  <div class="nav-right">
+    <span id="admin-name-display">Admin</span>
+    <button onclick="handleLogout()">Logout</button>
+  </div>
+</header>
+
+<div class="page-header">
+  <h1>Dashboard</h1>
+  <p id="dashboard-subtitle">Loading...</p>
+</div>
+
+<!-- STATS -->
+<section>
+  <div id="stat-orders">0</div>
+  <div id="stat-products">0</div>
+  <div id="stat-revenue">0</div>
+</section>
+
+<!-- TABS -->
+<div class="admin-tabs">
+  <button class="admin-tab-btn active" onclick="switchTab('orders',this)">Orders</button>
+  <button class="admin-tab-btn" onclick="switchTab('products',this)">Products</button>
+  <button class="admin-tab-btn" onclick="switchTab('customers',this)">Customers</button>
+</div>
+
+<!-- ORDERS -->
+<div class="tab-content active" id="tab-orders">
+  <table>
+    <tbody id="orders-body"></tbody>
+  </table>
+</div>
+
+<!-- PRODUCTS -->
+<div class="tab-content" id="tab-products">
+
+  <div class="product-form">
+    <h3>Add Flower</h3>
+
+    <div class="form-row">
+      <input id="p-name" placeholder="Name">
+      <input id="p-emoji" placeholder="Emoji">
+    </div>
+
+    <div class="form-row triple">
+      <input id="p-price" placeholder="Price">
+      <input id="p-tag" placeholder="Tag">
+      <input id="p-meaning" placeholder="Meaning">
+    </div>
+
+    <button onclick="addProduct()">Add</button>
+  </div>
+
+  <table>
+    <tbody id="products-body"></tbody>
+  </table>
+</div>
+
+<!-- CUSTOMERS -->
+<div class="tab-content" id="tab-customers">
+  <table>
+    <tbody id="customers-body"></tbody>
+  </table>
+</div>
+
+<script src="js/app.js"></script>
+
+<script>
+const API = "http://localhost/bloomify_FINAL/bloomify_final/api";
+
+/* ================= INIT ================= */
+(async function init() {
+  try {
+    const res = await fetch(`${API}/auth.php?action=check`, {
+      credentials: "include"
+    });
+
+    const data = await res.json();
+
+    if (!data.logged_in || data.user.role !== "admin") {
+      window.location.href = "login.html";
+      return;
+    }
+
+    document.getElementById("admin-name-display").textContent = "Admin";
+
+    loadStats();
+    loadProducts();
+    loadOrders();
+    loadCustomers();
+
+  } catch (e) {
+    window.location.href = "login.html";
+  }
+})();
+
+/* ================= TAB ================= */
+function switchTab(name, btn){
+  document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+  document.querySelectorAll(".admin-tab-btn").forEach(b => b.classList.remove("active"));
+
+  document.getElementById("tab-" + name).classList.add("active");
+  btn.classList.add("active");
+}
+
+/* ================= STATS ================= */
+async function loadStats(){
+  const r = await fetch(`${API}/admin.php?action=stats`);
+  const d = await r.json();
+
+  if (!d.success) return;
+
+  document.getElementById("stat-orders").textContent = d.stats.total_orders;
+  document.getElementById("stat-products").textContent = d.stats.total_products;
+  document.getElementById("stat-revenue").textContent = d.stats.revenue;
+}
+
+/* ================= PRODUCTS ================= */
+async function loadProducts(){
+  const r = await fetch(`${API}/admin.php?action=products`);
+  const d = await r.json();
+
+  if (!d.success) return;
+
+  document.getElementById("products-body").innerHTML =
+    d.products.map(p => `
+      <tr>
+        <td>${p.emoji || "🌸"} ${p.name}</td>
+        <td>${p.price}</td>
+        <td>${p.meaning}</td>
+      </tr>
+    `).join("");
+}
+
+/* ================= ADD PRODUCT (FIXED) ================= */
+async function addProduct(){
+
+  const name = document.getElementById("p-name").value;
+  const emoji = document.getElementById("p-emoji").value;
+  const price = document.getElementById("p-price").value;
+  const tag = document.getElementById("p-tag").value;
+  const meaning = document.getElementById("p-meaning").value;
+
+  const res = await fetch(`${API}/admin.php?action=add-product`, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    credentials: "include",
+    body: JSON.stringify({name, emoji, price, tag, meaning})
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    alert("Product added");
+    loadProducts();
+    loadStats();
+  } else {
+    alert(data.message || "Failed");
+  }
+}
+
+/* ================= ORDERS ================= */
+async function loadOrders(){
+  const r = await fetch(`${API}/admin.php?action=orders`);
+  const d = await r.json();
+
+  if (!d.success) return;
+
+  document.getElementById("orders-body").innerHTML =
+    d.orders.map(o => `
+      <tr>
+        <td>#${o.id}</td>
+        <td>${o.customer_name}</td>
+        <td>${o.total}</td>
+        <td>${o.status}</td>
+      </tr>
+    `).join("");
+}
+
+/* ================= CUSTOMERS ================= */
+async function loadCustomers(){
+  const r = await fetch(`${API}/admin.php?action=users`);
+  const d = await r.json();
+
+  if (!d.success) return;
+
+  document.getElementById("customers-body").innerHTML =
+    d.users.map(u => `
+      <tr>
+        <td>${u.name}</td>
+        <td>${u.email}</td>
+        <td>${u.role}</td>
+      </tr>
+    `).join("");
+}
+
+/* ================= LOGOUT ================= */
+function handleLogout(){
+  fetch(`${API}/auth.php?action=logout`, {
+    credentials: "include"
+  }).then(() => {
+    window.location.href = "login.html";
+  });
+}
+
+</script>
+
+</body>
+</html>

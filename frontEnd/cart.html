@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Cart — Bloomify</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .cart-container{max-width:760px;margin:0 auto;padding:0 8% 60px;}
+    .cart-table{width:100%;border-collapse:collapse;margin-bottom:24px;}
+    .cart-table th{text-align:left;font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;padding:10px 14px;border-bottom:1px solid var(--border);}
+    .cart-table td{padding:14px;border-bottom:1px solid var(--border);font-size:14px;vertical-align:middle;}
+    .qty-ctrl{display:inline-flex;align-items:center;gap:8px;}
+    .qty-btn{width:28px;height:28px;border:1px solid var(--border);background:var(--bg);border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+    .qty-btn:hover{border-color:var(--primary);color:var(--primary);}
+    .cart-summary{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;}
+    .cart-summary-row{display:flex;justify-content:space-between;font-size:14px;margin-bottom:10px;color:var(--text-muted);}
+    .cart-summary-total{display:flex;justify-content:space-between;font-size:18px;font-weight:600;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);}
+    .remove-item-btn{background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:14px;padding:4px;transition:color .2s;}
+    .remove-item-btn:hover{color:var(--primary);}
+    .empty-cart{text-align:center;padding:80px 20px;}
+    .empty-cart .empty-icon{font-size:64px;margin-bottom:16px;}
+    .empty-cart h3{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;margin-bottom:8px;}
+    .notes-group{margin:16px 0;}
+    .notes-group label{font-size:13px;font-weight:500;color:var(--text-muted);display:block;margin-bottom:6px;}
+    .notes-group textarea{width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-family:inherit;font-size:13px;resize:vertical;min-height:72px;background:var(--bg);color:var(--text);}
+  </style>
+</head>
+<body>
+<header class="navbar">
+  <a href="index.html" class="logo">Bloom<span>ify</span></a>
+  <nav><ul>
+    <li><a href="index.html">Home</a></li>
+    <li><a href="catalog.html">Flowers</a></li>
+    <li><a href="customize.html">Customize</a></li>
+    <li id="nav-login-link"><a href="login.html">Login</a></li>
+  </ul></nav>
+  <div class="nav-right">
+    <div id="nav-user-info" style="display:none;align-items:center;gap:10px;">
+      <span style="font-size:13px;color:var(--text-muted);font-weight:500;"><i class="fa-solid fa-circle" style="color:var(--accent);font-size:8px;"></i> <span id="nav-user-name"></span></span>
+      <button onclick="handleLogout()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--primary);font-weight:500;">Logout</button>
+    </div>
+    <a href="cart.html" class="nav-cart-btn"><i class="fa-solid fa-basket-shopping"></i><span id="cart-count" style="display:none;">0</span></a>
+  </div>
+</header>
+
+<div class="page-header">
+  <h1>Your Cart</h1>
+  <p>Review your flowers before placing your order</p>
+  <div class="ornament"><i class="fa-solid fa-basket-shopping"></i></div>
+</div>
+
+<div class="cart-container">
+  <div id="cart-loading" style="text-align:center;padding:60px;color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin" style="font-size:24px;"></i></div>
+  <div id="cart-empty" class="empty-cart" style="display:none;">
+    <div class="empty-icon">🛒</div><h3>Your cart is empty</h3><p>Add some beautiful flowers to get started.</p>
+    <a href="catalog.html" class="btn-primary" style="margin-top:20px;display:inline-flex;"><i class="fa-solid fa-seedling"></i> Browse Flowers</a>
+  </div>
+  <div id="cart-content" style="display:none;">
+    <table class="cart-table"><thead><tr><th>Flower</th><th>Price</th><th>Quantity</th><th>Subtotal</th><th></th></tr></thead>
+    <tbody id="cart-body"></tbody></table>
+    <div class="cart-summary">
+      <div class="cart-summary-row"><span>Subtotal</span><span id="summary-subtotal">$0.00</span></div>
+      <div class="cart-summary-row"><span>Delivery</span><span style="color:var(--accent);">Free</span></div>
+      <div class="cart-summary-total"><span>Total</span><span id="summary-total">$0.00</span></div>
+      <div class="notes-group" style="margin-top:20px;">
+        <label for="cart-notes">Special instructions (optional)</label>
+        <textarea id="cart-notes" placeholder="E.g. gift wrap, birthday message..."></textarea>
+      </div>
+      <button class="btn-order" style="width:100%;margin-top:16px;" id="checkout-btn" onclick="checkout()">
+        <i class="fa-solid fa-bag-shopping"></i> Place Order
+      </button>
+      <a href="catalog.html" style="display:block;text-align:center;margin-top:12px;font-size:13px;color:var(--text-muted);text-decoration:none;">
+        <i class="fa-solid fa-arrow-left"></i> Continue Shopping
+      </a>
+    </div>
+  </div>
+  <div id="cart-success" style="display:none;text-align:center;padding:60px 20px;">
+    <div style="font-size:64px;margin-bottom:16px;">🌸</div>
+    <h3 style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;color:var(--accent);margin-bottom:8px;">Order Placed!</h3>
+    <p id="success-details" style="color:var(--text-muted);font-size:14px;"></p>
+    <a href="index.html" class="btn-secondary" style="margin-top:20px;display:inline-flex;"><i class="fa-solid fa-house"></i> Back to Home</a>
+  </div>
+</div>
+
+<footer>
+  <a href="index.html" class="logo">Bloom<span>ify</span></a>
+  <p>© 2026 Bloomify. All rights reserved.</p>
+  <p>Made with 🌸 for every occasion</p>
+</footer>
+<script src="js/app.js"></script>
+<script>
+  const API = "http://localhost/bloomify_FINAL/bloomify_final/api";
+  let cartItems = [];
+
+  async function loadCart() {
+    try {
+      const r = await fetch(`${API}/cart.php?action=get`);
+      const d = await r.json();
+      document.getElementById('cart-loading').style.display='none';
+      if (r.status===401 || !d.success) {
+        document.getElementById('cart-empty').innerHTML=`
+          <div class="empty-icon">🔒</div><h3>Please log in</h3><p>Sign in to view your cart.</p>
+          <a href="login.html" class="btn-primary" style="margin-top:20px;display:inline-flex;"><i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In</a>`;
+        document.getElementById('cart-empty').style.display='block'; return;
+      }
+      cartItems = d.items;
+      if (!cartItems.length) { document.getElementById('cart-empty').style.display='block'; return; }
+      renderCart(d);
+    } catch {
+      document.getElementById('cart-loading').style.display='none';
+      document.getElementById('cart-empty').style.display='block';
+    }
+  }
+
+  function renderCart(d) {
+    document.getElementById('cart-content').style.display='block';
+    document.getElementById('cart-body').innerHTML = d.items.map(item=>`
+      <tr>
+        <td><div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-size:32px;">${item.emoji}</span>
+          <div><strong>${item.name}</strong><br><span style="font-size:12px;color:var(--text-muted);">$${parseFloat(item.price).toFixed(2)} each</span></div>
+        </div></td>
+        <td>$${parseFloat(item.price).toFixed(2)}</td>
+        <td><div class="qty-ctrl">
+          <button class="qty-btn" onclick="changeQty(${item.product_id},${item.quantity-1})"><i class="fa-solid fa-minus"></i></button>
+          <span>${item.quantity}</span>
+          <button class="qty-btn" onclick="changeQty(${item.product_id},${item.quantity+1})"><i class="fa-solid fa-plus"></i></button>
+        </div></td>
+        <td>$${parseFloat(item.subtotal).toFixed(2)}</td>
+        <td><button class="remove-item-btn" onclick="removeItem(${item.product_id})"><i class="fa-solid fa-trash"></i></button></td>
+      </tr>`).join('');
+    document.getElementById('summary-subtotal').textContent='$'+parseFloat(d.total).toFixed(2);
+    document.getElementById('summary-total').textContent='$'+parseFloat(d.total).toFixed(2);
+    updateCartCount(d.count);
+  }
+
+  async function changeQty(fid, qty) {
+    const r = await fetch(`${API}/cart.php`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'update',flower_id:fid,quantity:qty})});
+    const d = await r.json();
+    if (d.success) location.reload();
+  }
+
+  async function removeItem(fid) {
+    const r = await fetch(`${API}/cart.php`,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'remove',flower_id:fid})});
+    const d = await r.json();
+    if (d.success) location.reload();
+  }
+
+  async function checkout() {
+    if (!cartItems.length) { showToast('Cart is empty.','error'); return; }
+    const btn = document.getElementById('checkout-btn');
+    btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Placing order...';
+    const notes = document.getElementById('cart-notes').value.trim();
+    const items = cartItems.map(i=>({flower_id:i.product_id, quantity:i.quantity}));
+    try {
+      const r = await fetch(`${API}/orders.php?action=place`,{method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'place',items,notes})});
+      const d = await r.json();
+      if (d.success) {
+        document.getElementById('cart-content').style.display='none';
+        document.getElementById('cart-success').style.display='block';
+        document.getElementById('success-details').textContent=
+          `Order #${d.order_id} confirmed — Total $${parseFloat(d.total).toFixed(2)}. Your bouquet is being prepared.`;
+        updateCartCount(0);
+      } else {
+        showToast(d.message||'Order failed.','error');
+        btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-bag-shopping"></i> Place Order';
+      }
+    } catch {
+      showToast('Network error. Try again.','error');
+      btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-bag-shopping"></i> Place Order';
+    }
+  }
+
+  loadCart();
+</script>
+</body>
+</html>
