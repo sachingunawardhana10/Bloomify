@@ -115,6 +115,19 @@ function handleLogout() {
     window.location.replace("login.html");
   });
 }
+window.switchTab = function(tab, btn) {
+
+  document.querySelectorAll(".tab-content")
+    .forEach(el => el.classList.remove("active"));
+
+  document.querySelectorAll(".tab-btn")
+    .forEach(el => el.classList.remove("active"));
+
+  document.getElementById("tab-" + tab)
+    .classList.add("active");
+
+  btn.classList.add("active");
+};
 
 // ---------------- INIT ----------------
 updateCartCount(cart.reduce((a, b) => a + b.qty, 0));

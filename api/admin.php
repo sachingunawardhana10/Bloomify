@@ -101,6 +101,47 @@ if ($action === "add-product") {
     exit;
 }
 
+/* UPDATE PRODUCT */
+if ($action === "update-product") {
+
+    $data = json_decode(file_get_contents("php://input"), true);
+
+    $stmt = $conn->prepare("
+        UPDATE flowers
+        SET name=?, image=?, price=?, tag=?, meaning=?
+        WHERE id=?
+    ");
+
+    $stmt->bind_param(
+        "sssssi",
+        $data['name'],
+        $data['image'],
+        $data['price'],
+        $data['tag'],
+        $data['meaning'],
+        $data['id']
+    );
+
+    echo json_encode([
+        "success" => $stmt->execute()
+    ]);
+    exit;
+}
+
+/* DELETE PRODUCT */
+if ($action === "delete-product") {
+
+    $id = $_GET['id'] ?? 0;
+
+    $stmt = $conn->prepare("DELETE FROM flowers WHERE id=?");
+    $stmt->bind_param("i", $id);
+
+    echo json_encode([
+        "success" => $stmt->execute()
+    ]);
+    exit;
+}
+
 /* USERS */
 if ($action === "users") {
 
