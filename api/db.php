@@ -11,17 +11,24 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// ─── CORS (localhost XAMPP) ────────────────────────────────
-$allowed = ['http://localhost', 'http://127.0.0.1'];
-$origin  = $_SERVER['HTTP_ORIGIN'] ?? '';
+// ─── CORS ──────────────────────────────────────────────────
+$allowed = [
+    'http://localhost',
+    'http://localhost:3000',
+    'http://127.0.0.1',
+    'http://127.0.0.1:3000'
+];
+
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+
 if (in_array($origin, $allowed)) {
     header("Access-Control-Allow-Origin: $origin");
-} else {
-    header("Access-Control-Allow-Origin: http://localhost");
 }
+
 header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Authorization");
+header("Content-Type: application/json");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
@@ -31,17 +38,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // ─── DATABASE ──────────────────────────────────────────────
 $host = "localhost";
 $user = "root";
-$pass = "root123";          // XAMPP default — change if you set a password
+$pass = "root123";
 $db   = "bloomify";
 
 $conn = new mysqli($host, $user, $pass, $db);
 
 if ($conn->connect_error) {
-    header("Content-Type: application/json");
-    die(json_encode([
+    echo json_encode([
         "success" => false,
         "message" => "Database connection failed: " . $conn->connect_error
-    ]));
+    ]);
+    exit;
 }
 
 $conn->set_charset("utf8mb4");
