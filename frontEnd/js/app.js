@@ -8,11 +8,37 @@ function saveCart() {
   updateCartCount(cart.reduce((a, b) => a + b.qty, 0));
 }
 
-function updateCartCount(n) {
-  document.querySelectorAll("#cart-count").forEach(el => {
-    el.textContent = n;
-    el.style.display = n > 0 ? "inline-block" : "none";
-  });
+async function updateCartCount() {
+  const cartCount = document.getElementById("cart-count");
+  if (!cartCount) return;
+
+  try {
+    const response = await fetch(`${window.API_BASE}/cart.php?action=get`, {
+      method: "GET",
+      credentials: "include"
+    });
+
+    if (response.status === 401) {
+      cartCount.textContent = "0";
+      cartCount.style.display = "none";
+      return;
+    }
+
+    const data = await response.json();
+    const items = data.items || data.cart || data.data || [];
+
+    const totalItems = items.reduce((sum, item) => {
+      return sum + parseInt(item.quantity || item.qty || 1);
+    }, 0);
+
+    cartCount.textContent = totalItems;
+    cartCount.style.display = totalItems > 0 ? "inline-flex" : "none";
+
+  } catch (error) {
+    console.error("Cart count failed:", error);
+    cartCount.textContent = "0";
+    cartCount.style.display = "none";
+  }
 }
 
 // ---------------- ADD TO CART (BACKEND) ----------------
@@ -131,3 +157,6 @@ window.switchTab = function(tab, btn) {
 
 // ---------------- INIT ----------------
 updateCartCount(cart.reduce((a, b) => a + b.qty, 0));
+document.addEventListener("DOMContentLoaded", function () {
+  updateCartCount();
+});

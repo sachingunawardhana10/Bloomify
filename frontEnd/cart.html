@@ -92,93 +92,246 @@
 </footer>
 <script src="js/app.js"></script>
 <script>
-  const API = "http://localhost/bloomify_FINAL/bloomify_final/api";
-  let cartItems = [];
+  window.API_BASE = window.API_BASE || "http://localhost/bloomify_FINAL/bloomify_final/api";
+
+  document.addEventListener("DOMContentLoaded", function () {
+    loadCart();
+  });
+
+  function showCartSection(section) {
+    document.getElementById("cart-loading").style.display = "none";
+    document.getElementById("cart-empty").style.display = "none";
+    document.getElementById("cart-content").style.display = "none";
+    document.getElementById("cart-success").style.display = "none";
+
+    document.getElementById(section).style.display = "block";
+  }
 
   async function loadCart() {
+    const cartBody = document.getElementById("cart-body");
+    const subtotalText = document.getElementById("summary-subtotal");
+    const totalText = document.getElementById("summary-total");
+    const emptyBox = document.getElementById("cart-empty");
+
     try {
-      const r = await fetch(`${API}/cart.php?action=get`);
-      const d = await r.json();
-      document.getElementById('cart-loading').style.display='none';
-      if (r.status===401 || !d.success) {
-        document.getElementById('cart-empty').innerHTML=`
-          <div class="empty-icon">🔒</div><h3>Please log in</h3><p>Sign in to view your cart.</p>
-          <a href="login.html" class="btn-primary" style="margin-top:20px;display:inline-flex;"><i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In</a>`;
-        document.getElementById('cart-empty').style.display='block'; return;
+      showCartSection("cart-loading");
+
+      const response = await fetch(`${window.API_BASE}/cart.php?action=get`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      if (response.status === 401) {
+        emptyBox.innerHTML = `
+          <div class="empty-icon">🔐</div>
+          <h3>Please login first</h3>
+          <p>You need to login to view your cart.</p>
+          <a href="login.html" class="btn-primary" style="margin-top:20px;display:inline-flex;">
+            <i class="fa-solid fa-right-to-bracket"></i> Login
+          </a>
+        `;
+
+        showCartSection("cart-empty");
+        return;
       }
-      cartItems = d.items;
-      if (!cartItems.length) { document.getElementById('cart-empty').style.display='block'; return; }
-      renderCart(d);
-    } catch {
-      document.getElementById('cart-loading').style.display='none';
-      document.getElementById('cart-empty').style.display='block';
+
+      const data = await response.json();
+      console.log("CART RESPONSE:", data);
+
+      const items = data.items || data.cart || data.data || [];
+
+      if (!items || items.length === 0) {
+        showCartSection("cart-empty");
+        return;
+      }
+
+      let subtotal = 0;
+
+      cartBody.innerHTML = items.map(item => {
+        const cartId = item.cart_id || item.id;
+        const name = item.name || item.flower_name || item.product_name || "Flower";
+        const price = parseFloat(item.price || 0);
+        const quantity = parseInt(item.quantity || item.qty || 1);
+        const itemTotal = price * quantity;
+
+        subtotal += itemTotal;
+
+        return `
+          <tr>
+            <td>${name}</td>
+            <td>Rs. ${price.toFixed(2)}</td>
+            <td>
+              <div class="qty-ctrl">
+                <button class="qty-btn" onclick="updateQuantity(${cartId}, ${quantity - 1})">-</button>
+                <span>${quantity}</span>
+                <button class="qty-btn" onclick="updateQuantity(${cartId}, ${quantity + 1})">+</button>
+              </div>
+            </td>
+            <td>Rs. ${itemTotal.toFixed(2)}</td>
+            <td>
+              <button class="remove-item-btn" onclick="removeCartItem(${cartId})">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+
+      subtotalText.textContent = `Rs. ${subtotal.toFixed(2)}`;
+      totalText.textContent = `Rs. ${subtotal.toFixed(2)}`;
+
+      showCartSection("cart-content");
+
+    } catch (error) {
+      console.error("Cart loading failed:", error);
+
+      emptyBox.innerHTML = `
+        <div class="empty-icon">⚠️</div>
+        <h3>Failed to load cart</h3>
+        <p>Please check your API response and console.</p>
+      `;
+
+      showCartSection("cart-empty");
     }
   }
 
-  function renderCart(d) {
-    document.getElementById('cart-content').style.display='block';
-    document.getElementById('cart-body').innerHTML = d.items.map(item=>`
-      <tr>
-        <td><div style="display:flex;align-items:center;gap:12px;">
-          <span style="font-size:32px;">${item.emoji}</span>
-          <div><strong>${item.name}</strong><br><span style="font-size:12px;color:var(--text-muted);">$${parseFloat(item.price).toFixed(2)} each</span></div>
-        </div></td>
-        <td>$${parseFloat(item.price).toFixed(2)}</td>
-        <td><div class="qty-ctrl">
-          <button class="qty-btn" onclick="changeQty(${item.product_id},${item.quantity-1})"><i class="fa-solid fa-minus"></i></button>
-          <span>${item.quantity}</span>
-          <button class="qty-btn" onclick="changeQty(${item.product_id},${item.quantity+1})"><i class="fa-solid fa-plus"></i></button>
-        </div></td>
-        <td>$${parseFloat(item.subtotal).toFixed(2)}</td>
-        <td><button class="remove-item-btn" onclick="removeItem(${item.product_id})"><i class="fa-solid fa-trash"></i></button></td>
-      </tr>`).join('');
-    document.getElementById('summary-subtotal').textContent='$'+parseFloat(d.total).toFixed(2);
-    document.getElementById('summary-total').textContent='$'+parseFloat(d.total).toFixed(2);
-    updateCartCount(d.count);
+  async function removeCartItem(cartId) {
+  if (!cartId) {
+    alert("Cart item ID missing");
+    return;
   }
 
-  async function changeQty(fid, qty) {
-    const r = await fetch(`${API}/cart.php`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'update',flower_id:fid,quantity:qty})});
-    const d = await r.json();
-    if (d.success) location.reload();
+  try {
+    const response = await fetch(`${window.API_BASE}/cart.php?action=remove`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        cart_id: cartId
+      })
+    });
+
+    const data = await response.json();
+    console.log("REMOVE RESPONSE:", data);
+
+    if (data.success) {
+      loadCart();
+      updateCartCount();
+    } else {
+      alert(data.message || "Failed to remove item");
+    }
+
+  } catch (error) {
+    console.error("Remove failed:", error);
+    alert("Remove failed. Check console.");
+  }
+}
+
+async function updateQuantity(cartId, quantity) {
+  if (quantity < 1) {
+    removeCartItem(cartId);
+    return;
   }
 
-  async function removeItem(fid) {
-    const r = await fetch(`${API}/cart.php`,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({action:'remove',flower_id:fid})});
-    const d = await r.json();
-    if (d.success) location.reload();
+  try {
+    const response = await fetch(`${window.API_BASE}/cart.php?action=update`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        cart_id: cartId,
+        quantity: quantity
+      })
+    });
+
+    const data = await response.json();
+    console.log("UPDATE RESPONSE:", data);
+
+    if (data.success) {
+      loadCart();
+      updateCartCount();
+    } else {
+      alert(data.message || "Failed to update quantity");
+    }
+
+  } catch (error) {
+    console.error("Quantity update failed:", error);
+    alert("Quantity update failed. Check console.");
+  }
+}
+
+  async function updateQuantity(cartId, quantity) {
+    if (quantity < 1) {
+      removeCartItem(cartId);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${window.API_BASE}/cart.php?action=update`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          cart_id: cartId,
+          id: cartId,
+          quantity: quantity
+        })
+      });
+
+      const data = await response.json();
+      console.log("UPDATE RESPONSE:", data);
+
+      if (data.success) {
+        loadCart();
+      } else {
+        alert(data.message || "Failed to update quantity");
+      }
+
+    } catch (error) {
+      console.error("Quantity update failed:", error);
+      alert("Quantity update failed. Check console.");
+    }
   }
 
   async function checkout() {
-    if (!cartItems.length) { showToast('Cart is empty.','error'); return; }
-    const btn = document.getElementById('checkout-btn');
-    btn.disabled=true; btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Placing order...';
-    const notes = document.getElementById('cart-notes').value.trim();
-    const items = cartItems.map(i=>({flower_id:i.product_id, quantity:i.quantity}));
-    try {
-      const r = await fetch(`${API}/orders.php?action=place`,{method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({action:'place',items,notes})});
-      const d = await r.json();
-      if (d.success) {
-        document.getElementById('cart-content').style.display='none';
-        document.getElementById('cart-success').style.display='block';
-        document.getElementById('success-details').textContent=
-          `Order #${d.order_id} confirmed — Total $${parseFloat(d.total).toFixed(2)}. Your bouquet is being prepared.`;
-        updateCartCount(0);
-      } else {
-        showToast(d.message||'Order failed.','error');
-        btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-bag-shopping"></i> Place Order';
-      }
-    } catch {
-      showToast('Network error. Try again.','error');
-      btn.disabled=false; btn.innerHTML='<i class="fa-solid fa-bag-shopping"></i> Place Order';
-    }
-  }
+  const notes = document.getElementById("cart-notes").value;
 
-  loadCart();
+  try {
+    const response = await fetch(`${window.API_BASE}/orders.php?action=create`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        notes: notes
+      })
+    });
+
+    const data = await response.json();
+    console.log("CHECKOUT RESPONSE:", data);
+
+    if (data.success) {
+      document.getElementById("success-details").textContent =
+        data.message || "Your flower order has been placed successfully.";
+
+      showCartSection("cart-success");
+      updateCartCount();
+    } else {
+      alert(data.message || "Failed to place order");
+    }
+
+  } catch (error) {
+    console.error("Checkout failed:", error);
+    alert("Checkout failed. Check console.");
+  }
+}
 </script>
 </body>
 </html>
