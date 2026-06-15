@@ -1,119 +1,126 @@
 <?php
-require_once "db.php";
-header("Content-Type: application/json");
+require_once 'db.php';
 
 $action = $_GET['action'] ?? '';
-$raw    = file_get_contents("php://input");
-$data   = json_decode($raw, true) ?? [];
+$data = request_data();
 
-// ═══════════════════════════════════════════════
-//  LOGIN
-// ═══════════════════════════════════════════════
-if ($action === "login") {
+if ($action === 'login') {
+    $email = strtolower(trim($data['email'] ?? ''));
+    $password = (string)($data['password'] ?? '');
 
-    $email = trim($data['email'] ?? '');
-    $password = trim($data['password'] ?? '');
+    if ($email === '' || $password === '') {
+        json_response(['success' => false, 'message' => 'Email and password are required.'], 422);
+    }
 
-    $stmt = $conn->prepare("SELECT * FROM users WHERE email=?");
-    $stmt->bind_param("s", $email);
+    $stmt = $conn->prepare('SELECT id, name, email, password, role FROM users WHERE email = ? LIMIT 1');
+    $stmt->bind_param('s', $email);
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
 
     if (!$user) {
-        echo json_encode(["success"=>false,"message"=>"Invalid credentials"]);
-        exit;
+        json_response(['success' => false, 'message' => 'Invalid email or password.'], 401);
     }
 
-    // SAFE PASSWORD CHECK (handles whitespace issues)
-    if (trim($password) !== trim($user['password'])) {
-        echo json_encode(["success"=>false,"message"=>"Invalid credentials"]);
-        exit;
+    $stored = (string)$user['password'];
+    $isHash = password_get_info($stored)['algo'] !== 0;
+    $valid = $isHash ? password_verify($password, $stored) : hash_equals($stored, $password);
+
+    if (!$valid) {
+        json_response(['success' => false, 'message' => 'Invalid email or password.'], 401);
+    }
+
+    if (!$isHash) {
+        $newHash = password_hash($password, PASSWORD_BCRYPT);
+        $up = $conn->prepare('UPDATE users SET password = ? WHERE id = ?');
+        $up->bind_param('si', $newHash, $user['id']);
+        $up->execute();
     }
 
     session_regenerate_id(true);
-
-    $_SESSION['user_id'] = $user['id'];
-    $_SESSION['role'] = strtolower($user['role']); // 🔥 normalize
+    $_SESSION['user_id'] = (int)$user['id'];
     $_SESSION['name'] = $user['name'];
+    $_SESSION['role'] = strtolower($user['role']);
 
-    echo json_encode([
-        "success"=>true,
-        "user"=>[
-            "id"=>$user['id'],
-            "name"=>$user['name'],
-            "role"=>strtolower($user['role'])
+    json_response([
+        'success' => true,
+        'message' => 'Login successful.',
+        'user' => [
+            'id' => (int)$user['id'],
+            'name' => $user['name'],
+            'email' => $user['email'],
+            'role' => strtolower($user['role'])
         ]
     ]);
-    exit;
 }
 
-// ═══════════════════════════════════════════════
-//  REGISTER
-// ═══════════════════════════════════════════════
 if ($action === 'register') {
-    $name     = trim($data['name'] ?? '');
-    $email    = strtolower(trim($data['email'] ?? ''));
-    $password = $data['password'] ?? '';
+    $name = trim($data['name'] ?? '');
+    $email = strtolower(trim($data['email'] ?? ''));
+    $password = (string)($data['password'] ?? '');
 
-    if (!$name || !$email || !$password) {
-        echo json_encode(["success" => false, "message" => "All fields are required."]);
-        exit;
+    if ($name === '' || $email === '' || $password === '') {
+        json_response(['success' => false, 'message' => 'All fields are required.'], 422);
     }
+
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        echo json_encode(["success" => false, "message" => "Invalid email address."]);
-        exit;
-    }
-    if (strlen($password) < 6) {
-        echo json_encode(["success" => false, "message" => "Password must be at least 6 characters."]);
-        exit;
+        json_response(['success' => false, 'message' => 'Enter a valid email address.'], 422);
     }
 
-    // Check duplicate
-    $chk = $conn->prepare("SELECT id FROM users WHERE email = ? LIMIT 1");
-    $chk->bind_param("s", $email);
-    $chk->execute();
-    if ($chk->get_result()->num_rows > 0) {
-        echo json_encode(["success" => false, "message" => "This email is already registered."]);
-        exit;
+    if (strlen($password) < 6) {
+        json_response(['success' => false, 'message' => 'Password must be at least 6 characters.'], 422);
+    }
+
+    $check = $conn->prepare('SELECT id FROM users WHERE email = ? LIMIT 1');
+    $check->bind_param('s', $email);
+    $check->execute();
+
+    if ($check->get_result()->num_rows > 0) {
+        json_response(['success' => false, 'message' => 'This email is already registered.'], 409);
     }
 
     $hash = password_hash($password, PASSWORD_BCRYPT);
-    $ins  = $conn->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, 'customer')");
-    $ins->bind_param("sss", $name, $email, $hash);
+    $role = 'customer';
 
-    if ($ins->execute()) {
-        echo json_encode(["success" => true, "message" => "Account created! You can now sign in."]);
-    } else {
-        echo json_encode(["success" => false, "message" => "Registration failed. Please try again."]);
-    }
-    exit;
+    $stmt = $conn->prepare('INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)');
+    $stmt->bind_param('ssss', $name, $email, $hash, $role);
+    $stmt->execute();
+
+    json_response(['success' => true, 'message' => 'Account created. Please sign in.']);
 }
 
-// ═══════════════════════════════════════════════
-//  CHECK SESSION
-// ═══════════════════════════════════════════════
 if ($action === 'check') {
-    $loggedIn = isset($_SESSION['user_id']);
-    echo json_encode([
-        "logged_in" => $loggedIn,
-        "user" => $loggedIn ? [
-            "id"   => (int)$_SESSION['user_id'],
-            "name" => $_SESSION['name'],
-            "role" => $_SESSION['role']
+    $loggedIn = !empty($_SESSION['user_id']);
+
+    json_response([
+        'success' => true,
+        'logged_in' => $loggedIn,
+        'user' => $loggedIn ? [
+            'id' => (int)$_SESSION['user_id'],
+            'name' => $_SESSION['name'] ?? '',
+            'role' => strtolower($_SESSION['role'] ?? 'customer')
         ] : null
     ]);
-    exit;
 }
 
-// ═══════════════════════════════════════════════
-//  LOGOUT
-// ═══════════════════════════════════════════════
 if ($action === 'logout') {
-    session_unset();
+    $_SESSION = [];
+
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        setcookie(
+            session_name(),
+            '',
+            time() - 42000,
+            $params['path'],
+            $params['domain'] ?? '',
+            $params['secure'],
+            $params['httponly']
+        );
+    }
+
     session_destroy();
-    echo json_encode(["success" => true]);
-    exit;
+    json_response(['success' => true, 'message' => 'Logged out.']);
 }
 
-echo json_encode(["success" => false, "message" => "Unknown action."]);
+json_response(['success' => false, 'message' => 'Unknown auth action.'], 404);
 ?>

@@ -1,49 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard — Bloomify</title>
-
-  <link rel="stylesheet" href="css/admin-theme.css">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  
-
-  <style>
-    
-    .admin-tabs{display:flex;gap:8px;padding:0 8%;margin-bottom:32px;flex-wrap:wrap;}
-    .admin-tab-btn{padding:10px 22px;border:1px solid var(--border);border-radius:30px;background:var(--bg);cursor:pointer;}
-    .admin-tab-btn.active{background:var(--primary);color:#fff;}
-    .tab-content{display:none;padding:0 8% 60px;}
-    .tab-content.active{display:block;}
-
-    .product-form{background:var(--surface);padding:24px;border-radius:12px;margin-bottom:20px;}
-    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-    .form-row.triple{grid-template-columns:1fr 1fr 1fr;}
-    input{padding:10px;border:1px solid var(--border);border-radius:8px;width:100%;}
-    button{cursor:pointer;}
-  </style>
+  <link rel="stylesheet" href="css/admin-theme.css">
 </head>
-
 <body>
-
 <header class="admin-navbar">
-  <a href="index.html" class="brand-logo" aria-label="Bloomify home"><img src="images/bloomify_logo.png" alt="Bloomify logo"></a>
+  <a href="index.html" class="brand-logo" aria-label="Bloomify home">
+    <img src="images/bloomify_logo.png" alt="Bloomify logo">
+  </a>
 
   <div class="admin-user">
-    <span id="admin-name-display">Admin</span>
+    <span>
+      <i class="fa-solid fa-user-shield"></i>
+      <span id="admin-name-display">Admin</span>
+    </span>
+
     <button onclick="handleLogout()">Logout</button>
   </div>
 </header>
 
 <section class="admin-hero">
   <h1>Dashboard</h1>
-  <p>Manage your flower shop in real-time</p>
+  <p>Manage flowers, stock, orders and customers from one clean panel.</p>
 </section>
 
-<!-- STATS -->
 <section class="stats-grid">
   <div class="stat-card">
     <h2 id="stat-orders">0</h2>
@@ -52,201 +36,123 @@
 
   <div class="stat-card">
     <h2 id="stat-products">0</h2>
-    <p>Products</p>
+    <p>Flowers</p>
   </div>
 
   <div class="stat-card">
-    <h2 id="stat-revenue">0</h2>
+    <h2 id="stat-customers">0</h2>
+    <p>Customers</p>
+  </div>
+
+  <div class="stat-card">
+    <h2 id="stat-revenue">$0.00</h2>
     <p>Revenue</p>
   </div>
 </section>
 
-<!-- TABS -->
 <div class="admin-tabs">
-  <button class="tab-btn active" onclick="switchTab('orders',this)">Orders</button>
-  <button class="tab-btn" onclick="switchTab('products',this)">Products</button>
-  <button class="tab-btn" onclick="switchTab('customers',this)">Customers</button>
+  <button class="tab-btn active" onclick="switchTab('orders', this)">
+    <i class="fa-solid fa-box"></i> Orders
+  </button>
+
+  <button class="tab-btn" onclick="switchTab('products', this)">
+    <i class="fa-solid fa-seedling"></i> Products
+  </button>
+
+  <button class="tab-btn" onclick="switchTab('customers', this)">
+    <i class="fa-solid fa-users"></i> Customers
+  </button>
 </div>
 
-<!-- ORDERS -->
-<div id="tab-orders" class="tab-content active">
-  <table class="admin-table">
-    <tbody id="orders-body"></tbody>
-  </table>
-</div>
+<section id="tab-orders" class="tab-content active">
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Order</th>
+          <th>Customer</th>
+          <th>Total</th>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
 
-<!-- PRODUCTS -->
-<div id="tab-products" class="tab-content">
+      <tbody id="orders-body">
+        <tr>
+          <td colspan="6" class="empty-row">Loading orders...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
 
-  <div class="form-box">
-    <h3>Add Flower</h3>
+<section id="tab-products" class="tab-content">
+  <div class="admin-card">
+    <h3 id="product-form-title">Add Flower</h3>
 
-    <input id="p-name" placeholder="Name">
-    <input id="p-emoji" placeholder="Emoji">
-    <input id="p-price" placeholder="Price">
-    <input id="p-tag" placeholder="Tag">
-    <input id="p-meaning" placeholder="Meaning">
+    <form class="admin-form" id="product-form">
+      <input id="p-name" placeholder="Flower name" required>
+      <input id="p-emoji" placeholder="Emoji" value="🌸" required>
+      <input id="p-price" type="number" step="0.01" min="0" placeholder="Price" required>
+      <input id="p-tag" placeholder="Tag e.g. Popular">
+      <input id="p-stock" type="number" min="0" value="20" placeholder="Stock" required>
 
-    <button onclick="addProduct()">Add Product</button>
+      <textarea id="p-meaning" placeholder="Meaning / description" required></textarea>
+
+      <div class="form-actions">
+        <button class="btn-primary" type="submit" id="product-submit-btn">Save Product</button>
+        <button class="btn-secondary" type="button" onclick="resetProductForm()">Clear</button>
+      </div>
+    </form>
   </div>
 
-  <table class="admin-table">
-    <tbody id="products-body"></tbody>
-  </table>
-</div>
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Flower</th>
+          <th>Price</th>
+          <th>Tag</th>
+          <th>Meaning</th>
+          <th>Stock</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
 
-<!-- CUSTOMERS -->
-<div id="tab-customers" class="tab-content">
-  <table class="admin-table">
-    <tbody id="customers-body"></tbody>
-  </table>
-</div>
+      <tbody id="products-body">
+        <tr>
+          <td colspan="6" class="empty-row">Loading flowers...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
 
-<script>
-const API = "http://localhost/bloomify_FINAL/api";
+<section id="tab-customers" class="tab-content">
+  <div class="admin-table-wrap">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Joined</th>
+        </tr>
+      </thead>
 
-/* ================= AUTH ================= */
-async function checkAuth() {
-  const res = await fetch(`${API}/auth.php?action=check`, {
-    credentials: "include"
-  });
+      <tbody id="customers-body">
+        <tr>
+          <td colspan="5" class="empty-row">Loading customers...</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
 
-  const data = await res.json();
-
-  if (!data.logged_in || data.user.role !== "admin") {
-    window.location.href = "login.html";
-  }
-}
-
-/* ================= STATS ================= */
-async function loadStats() {
-  const res = await fetch(`${API}/admin.php?action=stats`, {
-    credentials: "include"
-  });
-
-  const data = await res.json();
-
-  document.getElementById("stat-orders").innerText = data.stats.orders;
-  document.getElementById("stat-products").innerText = data.stats.products;
-  document.getElementById("stat-revenue").innerText = data.stats.revenue;
-}
-
-/* ================= ORDERS ================= */
-async function loadOrders() {
-  const res = await fetch(`${API}/admin.php?action=orders`, {
-    credentials: "include"
-  });
-
-  const data = await res.json();
-
-  document.getElementById("orders-body").innerHTML =
-    data.orders.map(o => `
-      <tr>
-        <td>#${o.id}</td>
-        <td>${o.name}</td>
-        <td>${o.total}</td>
-        <td>${o.status}</td>
-      </tr>
-    `).join("");
-}
-
-/* ================= PRODUCTS ================= */
-async function loadProducts() {
-  const res = await fetch(`${API}/admin.php?action=products`, {
-    credentials: "include"
-  });
-
-  const data = await res.json();
-
-  document.getElementById("products-body").innerHTML =
-    data.products.map(p => `
-      <tr>
-        <td>${p.emoji} ${p.name}</td>
-        <td>${p.price}</td>
-      </tr>
-    `).join("");
-}
-
-/* ================= USERS ================= */
-async function loadUsers() {
-  const res = await fetch(`${API}/admin.php?action=users`, {
-    credentials: "include"
-  });
-
-  const data = await res.json();
-
-  document.getElementById("customers-body").innerHTML =
-    data.users.map(u => `
-      <tr>
-        <td>${u.name}</td>
-        <td>${u.email}</td>
-        <td>${u.role}</td>
-      </tr>
-    `).join("");
-}
-
-/* ================= ADD PRODUCT ================= */
-async function addProduct() {
-
-  const res = await fetch(`${API}/admin.php?action=add-product`, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    credentials: "include",
-    body: JSON.stringify({
-      name: document.getElementById("p-name").value,
-      emoji: document.getElementById("p-emoji").value,
-      price: document.getElementById("p-price").value,
-      tag: document.getElementById("p-tag").value,
-      meaning: document.getElementById("p-meaning").value
-    })
-  });
-
-  const data = await res.json();
-
-  if (data.success) {
-    loadProducts();
-    loadStats();
-    alert("Product added");
-  } else {
-    alert(data.message);
-  }
-}
-
-/* ================= TAB SWITCH ================= */
-function switchTab(tab, btn) {
-
-  document.querySelectorAll(".tab-content")
-    .forEach(t => t.classList.remove("active"));
-
-  document.querySelectorAll(".tab-btn")
-    .forEach(b => b.classList.remove("active"));
-
-  document.getElementById("tab-" + tab).classList.add("active");
-  btn.classList.add("active");
-}
-
-/* ================= LOGOUT ================= */
-function handleLogout() {
-  fetch(`${API}/auth.php?action=logout`, {
-    credentials: "include"
-  }).then(() => {
-    window.location.href = "login.html";
-  });
-}
-
-/* ================= INIT ================= */
-(async function () {
-  await checkAuth();
-  loadStats();
-  loadOrders();
-  loadProducts();
-  loadUsers();
-
-  setInterval(() => {
-    loadStats();
-  }, 5000);
-})();
-</script>
-
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+<script src="js/admin.js"></script>
 </body>
 </html>

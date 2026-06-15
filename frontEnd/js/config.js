@@ -1,1 +1,11 @@
-window.API = "http://localhost/bloomify_FINAL/api";
+(function () {
+  const pathParts = window.location.pathname.split('/');
+  const frontIndex = pathParts.findIndex(part => part.toLowerCase() === 'frontend');
+
+  if (frontIndex >= 0) {
+    const projectRoot = pathParts.slice(0, frontIndex).join('/');
+    window.API = `${window.location.origin}${projectRoot}/api`;
+  } else {
+    window.API = `${window.location.origin}/bloomify_final/api`;
+  }
+})();

@@ -1,14 +1,4 @@
 <?php
-
-$host = "localhost";
-$user = "root";
-$pass = "root123";
-$db = "bloomify";
-
-$conn = new mysqli($host, $user, $pass, $db);
-
-if ($conn->connect_error) {
-    die($conn->connect_error);
-}
-
-echo "CONNECTED";
+require_once 'db.php';
+json_response(['success' => true, 'message' => 'Database connected successfully.']);
+?>
