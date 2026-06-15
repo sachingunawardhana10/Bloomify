@@ -245,3 +245,22 @@ body{
     padding-right:5%;
   }
 }
+.admin-product-box{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.admin-product-thumb{
+  width:58px;
+  height:58px;
+  border-radius:16px;
+  object-fit:cover;
+  border:1px solid var(--border);
+  background:#fff1f5;
+}
+
+.admin-product-box small{
+  color:var(--muted);
+  font-size:11px;
+}

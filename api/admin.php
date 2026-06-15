@@ -38,7 +38,10 @@ if ($action === 'orders') {
         $orders[] = $row;
     }
 
-    json_response(['success' => true, 'orders' => $orders]);
+    json_response([
+        'success' => true,
+        'orders' => $orders
+    ]);
 }
 
 if ($action === 'update-order') {
@@ -48,18 +51,28 @@ if ($action === 'update-order') {
     $allowed = ['pending', 'processing', 'delivered', 'cancelled'];
 
     if ($id <= 0 || !in_array($status, $allowed, true)) {
-        json_response(['success' => false, 'message' => 'Invalid order status.'], 422);
+        json_response([
+            'success' => false,
+            'message' => 'Invalid order status.'
+        ], 422);
     }
 
     $stmt = $conn->prepare('UPDATE orders SET status = ? WHERE id = ?');
     $stmt->bind_param('si', $status, $id);
     $stmt->execute();
 
-    json_response(['success' => true, 'message' => 'Order updated.']);
+    json_response([
+        'success' => true,
+        'message' => 'Order updated.'
+    ]);
 }
 
 if ($action === 'products') {
-    $result = $conn->query('SELECT id, name, emoji, price, meaning, tag, stock FROM flowers ORDER BY id DESC');
+    $result = $conn->query(
+        'SELECT id, name, emoji, image, price, meaning, tag, stock 
+         FROM flowers 
+         ORDER BY id DESC'
+    );
 
     $products = [];
 
@@ -67,56 +80,118 @@ if ($action === 'products') {
         $row['id'] = (int)$row['id'];
         $row['price'] = (float)$row['price'];
         $row['stock'] = (int)$row['stock'];
+
+        if (empty($row['image'])) {
+            $row['image'] = 'images/flowers/default.jpg';
+        }
+
         $products[] = $row;
     }
 
-    json_response(['success' => true, 'products' => $products]);
+    json_response([
+        'success' => true,
+        'products' => $products
+    ]);
 }
 
 if ($action === 'save-product') {
     $id = (int)($data['id'] ?? 0);
     $name = trim($data['name'] ?? '');
     $emoji = trim($data['emoji'] ?? '🌸');
+    $image = trim($data['image'] ?? 'images/flowers/default.jpg');
     $price = (float)($data['price'] ?? 0);
     $tag = trim($data['tag'] ?? '');
     $meaning = trim($data['meaning'] ?? '');
     $stock = max(0, (int)($data['stock'] ?? 0));
 
     if ($name === '' || $price <= 0 || $meaning === '') {
-        json_response(['success' => false, 'message' => 'Name, price and meaning are required.'], 422);
+        json_response([
+            'success' => false,
+            'message' => 'Name, price and meaning are required.'
+        ], 422);
+    }
+
+    if ($image === '') {
+        $image = 'images/flowers/default.jpg';
     }
 
     if ($id > 0) {
-        $stmt = $conn->prepare('UPDATE flowers SET name = ?, emoji = ?, price = ?, tag = ?, meaning = ?, stock = ? WHERE id = ?');
-        $stmt->bind_param('ssdssii', $name, $emoji, $price, $tag, $meaning, $stock, $id);
+        $stmt = $conn->prepare(
+            'UPDATE flowers 
+             SET name = ?, emoji = ?, image = ?, price = ?, tag = ?, meaning = ?, stock = ? 
+             WHERE id = ?'
+        );
+
+        $stmt->bind_param(
+            'sssdssii',
+            $name,
+            $emoji,
+            $image,
+            $price,
+            $tag,
+            $meaning,
+            $stock,
+            $id
+        );
+
         $stmt->execute();
 
-        json_response(['success' => true, 'message' => 'Product updated.']);
+        json_response([
+            'success' => true,
+            'message' => 'Product updated.'
+        ]);
     }
 
-    $stmt = $conn->prepare('INSERT INTO flowers (name, emoji, price, tag, meaning, stock) VALUES (?, ?, ?, ?, ?, ?)');
-    $stmt->bind_param('ssdssi', $name, $emoji, $price, $tag, $meaning, $stock);
+    $stmt = $conn->prepare(
+        'INSERT INTO flowers (name, emoji, image, price, tag, meaning, stock) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)'
+    );
+
+    $stmt->bind_param(
+        'sssdssi',
+        $name,
+        $emoji,
+        $image,
+        $price,
+        $tag,
+        $meaning,
+        $stock
+    );
+
     $stmt->execute();
 
-    json_response(['success' => true, 'message' => 'Product added.']);
+    json_response([
+        'success' => true,
+        'message' => 'Product added.'
+    ]);
 }
 
 if ($action === 'delete-product') {
     $id = (int)($data['id'] ?? ($_GET['id'] ?? 0));
 
     if ($id <= 0) {
-        json_response(['success' => false, 'message' => 'Invalid product id.'], 422);
+        json_response([
+            'success' => false,
+            'message' => 'Invalid product id.'
+        ], 422);
     }
 
     $stmt = $conn->prepare('DELETE FROM flowers WHERE id = ?');
     $stmt->bind_param('i', $id);
     $stmt->execute();
 
-    json_response(['success' => true, 'message' => 'Product deleted.']);
+    json_response([
+        'success' => true,
+        'message' => 'Product deleted.'
+    ]);
 }
 
 if ($action === 'users') {
-    $result = $conn->query('SELECT id, name, email, role, created_at FROM users ORDER BY id DESC');
+    $result = $conn->query(
+        'SELECT id, name, email, role, created_at 
+         FROM users 
+         ORDER BY id DESC'
+    );
 
     $users = [];
 
@@ -125,8 +200,14 @@ if ($action === 'users') {
         $users[] = $row;
     }
 
-    json_response(['success' => true, 'users' => $users]);
+    json_response([
+        'success' => true,
+        'users' => $users
+    ]);
 }
 
-json_response(['success' => false, 'message' => 'Unknown admin action.'], 404);
+json_response([
+    'success' => false,
+    'message' => 'Unknown admin action.'
+], 404);
 ?>

@@ -41,7 +41,7 @@
 
 <div class="page-header">
   <h1>Build Your Bouquet</h1>
-  <p>Pick flowers, adjust quantities, then add the bouquet to your cart</p>
+  <p>Live flower and stock data with real images</p>
   <div class="ornament"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
 </div>
 
@@ -66,7 +66,7 @@
     </h2>
 
     <div class="bouquet-list" id="bouquet-list">
-      <div class="bouquet-empty" id="bouquet-empty">
+      <div class="bouquet-empty">
         <i class="fa-regular fa-circle-dot"></i>
         <p>No flowers yet — start selecting from the left panel.</p>
       </div>
@@ -97,46 +97,134 @@
 const bouquet = new Map();
 const flowersById = new Map();
 
-async function loadFlowers() {
+let lastCustomizeSignature = '';
+let customizeBusy = false;
+
+function flowerImage(product) {
+  return product.image && product.image.trim() !== ''
+    ? product.image
+    : 'images/flowers/default.jpg';
+}
+
+function renderFlowerOptions(products) {
+  const options = document.getElementById('flower-options');
+  const availableFlowers = products.filter(product => product.in_stock);
+
+  if (!availableFlowers.length) {
+    options.innerHTML = `
+      <p style="color:var(--muted);text-align:center;grid-column:1/-1;">
+        No flowers available right now.
+      </p>
+    `;
+    return;
+  }
+
+  options.innerHTML = availableFlowers.map(product => `
+    <button class="flower-opt-btn" onclick="addFlowerById(${product.id})">
+      <img 
+        class="f-thumb" 
+        src="${escapeHtml(flowerImage(product))}" 
+        alt="${escapeHtml(product.name)}"
+        onerror="this.src='images/flowers/default.jpg';"
+      >
+
+      <span class="f-info">
+        <span class="f-name">${escapeHtml(product.name)}</span>
+        <span class="f-price">${money(product.price)} • ${product.stock} left</span>
+      </span>
+    </button>
+  `).join('');
+}
+
+function syncBouquetWithLatestProducts(products) {
+  const latestMap = new Map();
+
+  products.forEach(product => {
+    latestMap.set(product.id, product);
+  });
+
+  let changed = false;
+
+  for (const [id, item] of bouquet.entries()) {
+    const latest = latestMap.get(id);
+
+    if (!latest || !latest.in_stock || latest.stock <= 0) {
+      bouquet.delete(id);
+      changed = true;
+      continue;
+    }
+
+    if (item.quantity > latest.stock) {
+      item.quantity = latest.stock;
+      changed = true;
+    }
+
+    item.name = latest.name;
+    item.emoji = latest.emoji;
+    item.image = latest.image;
+    item.price = Number(latest.price);
+    item.stock = Number(latest.stock);
+    item.meaning = latest.meaning;
+    item.tag = latest.tag;
+
+    bouquet.set(id, item);
+  }
+
+  if (changed) {
+    showToast('Bouquet updated because stock changed.', 'info');
+  }
+}
+
+async function loadFlowersRealtime(firstLoad = false) {
+  if (customizeBusy) return;
+
+  customizeBusy = true;
+
   const options = document.getElementById('flower-options');
 
   try {
     const { data } = await apiFetch('/products.php?action=all');
 
-    const flowers = (data.products || []).filter(product => product.in_stock);
+    if (!data.success) {
+      if (firstLoad) {
+        options.innerHTML = `
+          <p style="color:var(--primary);text-align:center;grid-column:1/-1;">
+            Could not load flowers. Check database connection.
+          </p>
+        `;
+      }
 
-    flowersById.clear();
-
-    flowers.forEach(product => {
-      flowersById.set(product.id, product);
-    });
-
-    if (!data.success || !flowers.length) {
-      options.innerHTML = `
-        <p style="color:var(--muted);text-align:center;grid-column:1/-1;">
-          No flowers available.
-        </p>
-      `;
       return;
     }
 
-    options.innerHTML = flowers.map(product => `
-      <button class="flower-opt-btn" onclick="addFlowerById(${product.id})">
-        <span class="f-emoji">${escapeHtml(product.emoji)}</span>
-        <span class="f-info">
-          <span class="f-name">${escapeHtml(product.name)}</span>
-          <span class="f-price">${money(product.price)} • ${product.stock} left</span>
-        </span>
-      </button>
-    `).join('');
+    const products = data.products || [];
+    const newSignature = JSON.stringify(products);
+
+    if (newSignature !== lastCustomizeSignature) {
+      lastCustomizeSignature = newSignature;
+
+      flowersById.clear();
+
+      products.forEach(product => {
+        flowersById.set(product.id, product);
+      });
+
+      syncBouquetWithLatestProducts(products);
+      renderFlowerOptions(products);
+      renderBouquet();
+    }
   } catch (error) {
     console.error(error);
 
-    options.innerHTML = `
-      <p style="color:var(--primary);text-align:center;grid-column:1/-1;">
-        Failed to load flowers. Check database connection.
-      </p>
-    `;
+    if (firstLoad) {
+      options.innerHTML = `
+        <p style="color:var(--primary);text-align:center;grid-column:1/-1;">
+          Failed to load flowers. Check database connection.
+        </p>
+      `;
+    }
+  } finally {
+    customizeBusy = false;
   }
 }
 
@@ -144,6 +232,7 @@ function addFlowerById(id) {
   const product = flowersById.get(id);
 
   if (!product) {
+    showToast('This flower is not available anymore.', 'error');
     return;
   }
 
@@ -151,6 +240,11 @@ function addFlowerById(id) {
 }
 
 function addFlower(product) {
+  if (!product.in_stock || product.stock <= 0) {
+    showToast(`${product.name} is out of stock.`, 'error');
+    return;
+  }
+
   const current = bouquet.get(product.id) || { ...product, quantity: 0 };
 
   if (current.quantity >= product.stock) {
@@ -175,6 +269,9 @@ function changeBouquetQty(id, amount) {
 
   if (item.quantity <= 0) {
     bouquet.delete(id);
+  } else if (item.quantity > item.stock) {
+    item.quantity = item.stock;
+    showToast(`${item.name} has only ${item.stock} in stock.`, 'error');
   } else {
     bouquet.set(id, item);
   }
@@ -191,7 +288,7 @@ function renderBouquet() {
 
   if (!items.length) {
     list.innerHTML = `
-      <div class="bouquet-empty" id="bouquet-empty">
+      <div class="bouquet-empty">
         <i class="fa-regular fa-circle-dot"></i>
         <p>No flowers yet — start selecting from the left panel.</p>
       </div>
@@ -199,22 +296,27 @@ function renderBouquet() {
 
     totalEl.textContent = '$0.00';
     button.disabled = true;
-
     return;
   }
 
   let total = 0;
 
   list.innerHTML = items.map(item => {
-    total += item.price * item.quantity;
+    total += Number(item.price) * Number(item.quantity);
 
     return `
       <div class="bouquet-item">
         <div class="bouquet-item-main">
-          <span>${escapeHtml(item.emoji)}</span>
+          <img 
+            class="bouquet-thumb" 
+            src="${escapeHtml(flowerImage(item))}" 
+            alt="${escapeHtml(item.name)}"
+            onerror="this.src='images/flowers/default.jpg';"
+          >
+
           <div>
             <strong>${escapeHtml(item.name)}</strong><br>
-            <small>${money(item.price)} each</small>
+            <small>${money(item.price)} each • ${item.stock} left</small>
           </div>
         </div>
 
@@ -255,11 +357,12 @@ async function addBouquetToCart() {
     }
 
     showToast('Bouquet added to cart.');
+    bouquet.clear();
+    renderBouquet();
 
     setTimeout(() => window.location.href = 'cart.html', 700);
   } catch (error) {
     console.error(error);
-
     showToast(error.message || 'Failed to add bouquet.', 'error');
 
     button.disabled = false;
@@ -267,7 +370,15 @@ async function addBouquetToCart() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', loadFlowers);
+document.addEventListener('DOMContentLoaded', () => {
+  loadFlowersRealtime(true);
+
+  setInterval(() => {
+    if (!document.hidden) {
+      loadFlowersRealtime(false);
+    }
+  }, 3000);
+});
 </script>
 </body>
 </html>

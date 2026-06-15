@@ -41,7 +41,7 @@
 
 <div class="page-header">
   <h1>Flower Catalog</h1>
-  <p>Curated flowers loaded directly from your MySQL database</p>
+  <p>Live flower list with real images from your MySQL database</p>
   <div class="ornament"><i class="fa-solid fa-leaf"></i></div>
 </div>
 
@@ -64,70 +64,128 @@
 <script src="js/app.js"></script>
 
 <script>
-async function loadProducts() {
+let lastCatalogSignature = '';
+let catalogBusy = false;
+
+function flowerImage(product) {
+  return product.image && product.image.trim() !== ''
+    ? product.image
+    : 'images/flowers/default.jpg';
+}
+
+function renderCatalog(products) {
+  const grid = document.getElementById('catalog-grid');
+
+  if (!products.length) {
+    grid.innerHTML = `
+      <div class="empty-cart" style="grid-column:1/-1;">
+        <div class="empty-icon">🌸</div>
+        <h3>No flowers available</h3>
+        <p>Add flowers from the admin dashboard.</p>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = products.map(product => `
+    <article class="flower-card ${!product.in_stock ? 'out-of-stock' : ''}">
+      <div class="flower-card-img real-flower-img">
+        <img 
+          src="${escapeHtml(flowerImage(product))}" 
+          alt="${escapeHtml(product.name)}"
+          onerror="this.src='images/flowers/default.jpg';"
+        >
+
+        ${product.tag ? `<span class="flower-tag">${escapeHtml(product.tag)}</span>` : ''}
+      </div>
+
+      <div class="flower-card-body">
+        <h3>${escapeHtml(product.name)}</h3>
+        <p class="meaning">${escapeHtml(product.meaning)}</p>
+        ${
+          product.in_stock
+            ? `<span class="stock-badge">${product.stock} in stock</span>`
+            : '<span class="stock-badge">Out of Stock</span>'
+        }
+      </div>
+
+      <div class="flower-card-footer">
+        <span class="price">${money(product.price)}</span>
+
+        <button class="btn-add" onclick="addToCart(this, ${product.id}, 1)" ${!product.in_stock ? 'disabled' : ''}>
+          <i class="fa-solid fa-plus"></i> Add
+        </button>
+      </div>
+    </article>
+  `).join('');
+}
+
+async function loadProductsRealtime(firstLoad = false) {
+  if (catalogBusy) return;
+
+  catalogBusy = true;
+
   const loading = document.getElementById('catalog-loading');
   const grid = document.getElementById('catalog-grid');
 
   try {
     const { data } = await apiFetch('/products.php?action=all');
 
-    loading.style.display = 'none';
-    grid.style.display = 'grid';
+    if (firstLoad) {
+      loading.style.display = 'none';
+      grid.style.display = 'grid';
+    }
 
-    if (!data.success || !data.products.length) {
-      grid.innerHTML = `
-        <div class="empty-cart" style="grid-column:1/-1;">
-          <div class="empty-icon">🌸</div>
-          <h3>No flowers available</h3>
-          <p>Import bloomify.sql or add flowers from the admin dashboard.</p>
-        </div>
-      `;
+    if (!data.success) {
+      if (firstLoad) {
+        grid.innerHTML = `
+          <div class="empty-cart" style="grid-column:1/-1;">
+            <div class="empty-icon">⚠️</div>
+            <h3>Could not load flowers</h3>
+            <p>${escapeHtml(data.message || 'Check database connection.')}</p>
+          </div>
+        `;
+      }
+
       return;
     }
 
-    grid.innerHTML = data.products.map(product => `
-      <article class="flower-card ${!product.in_stock ? 'out-of-stock' : ''}">
-        <div class="flower-card-img">
-          <span>${escapeHtml(product.emoji)}</span>
-          ${product.tag ? `<span class="flower-tag">${escapeHtml(product.tag)}</span>` : ''}
-        </div>
+    const products = data.products || [];
+    const newSignature = JSON.stringify(products);
 
-        <div class="flower-card-body">
-          <h3>${escapeHtml(product.name)}</h3>
-          <p class="meaning">${escapeHtml(product.meaning)}</p>
-          ${
-            product.in_stock
-              ? `<span class="stock-badge">${product.stock} in stock</span>`
-              : '<span class="stock-badge">Out of Stock</span>'
-          }
-        </div>
-
-        <div class="flower-card-footer">
-          <span class="price">${money(product.price)}</span>
-
-          <button class="btn-add" onclick="addToCart(this, ${product.id}, 1)" ${!product.in_stock ? 'disabled' : ''}>
-            <i class="fa-solid fa-plus"></i> Add
-          </button>
-        </div>
-      </article>
-    `).join('');
+    if (newSignature !== lastCatalogSignature) {
+      lastCatalogSignature = newSignature;
+      renderCatalog(products);
+    }
   } catch (error) {
     console.error(error);
 
-    loading.style.display = 'none';
-    grid.style.display = 'grid';
+    if (firstLoad) {
+      loading.style.display = 'none';
+      grid.style.display = 'grid';
 
-    grid.innerHTML = `
-      <div class="empty-cart" style="grid-column:1/-1;">
-        <div class="empty-icon">⚠️</div>
-        <h3>Could not load flowers</h3>
-        <p>Check the API path, api/db.php password and the bloomify database import.</p>
-      </div>
-    `;
+      grid.innerHTML = `
+        <div class="empty-cart" style="grid-column:1/-1;">
+          <div class="empty-icon">⚠️</div>
+          <h3>Could not load flowers</h3>
+          <p>Check API path, api/db.php password and database import.</p>
+        </div>
+      `;
+    }
+  } finally {
+    catalogBusy = false;
   }
 }
 
-document.addEventListener('DOMContentLoaded', loadProducts);
+document.addEventListener('DOMContentLoaded', () => {
+  loadProductsRealtime(true);
+
+  setInterval(() => {
+    if (!document.hidden) {
+      loadProductsRealtime(false);
+    }
+  }, 3000);
+});
 </script>
 </body>
 </html>
