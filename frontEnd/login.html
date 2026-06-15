@@ -16,7 +16,7 @@
 </head>
 <body>
 <header class="navbar">
-  <a href="index.html" class="logo">Bloom<span>ify</span></a>
+  <a href="index.html" class="brand-logo" aria-label="Bloomify home"><img src="images/bloomify_logo.png" alt="Bloomify logo"></a>
   <nav><ul>
     <li><a href="index.html">Home</a></li>
     <li><a href="catalog.html">Flowers</a></li>
@@ -157,7 +157,7 @@
 
 <script src="js/app.js"></script>
 <script>
-const API = "http://localhost/bloomify_FINAL/bloomify_final/api";
+const API = "http://localhost/bloomify_FINAL/api";
 (async () => {
   try {
     const res = await fetch(`${window.API}/auth.php?action=check`, {

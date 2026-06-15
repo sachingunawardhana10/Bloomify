@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // ─── DATABASE ──────────────────────────────────────────────
 $host = "localhost";
 $user = "root";
-$pass = "root123";
+$pass = "Hyunjin!76";
 $db   = "bloomify";
 
 $conn = new mysqli($host, $user, $pass, $db);

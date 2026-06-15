@@ -1,4 +1,4 @@
-const API = "http://localhost/bloomify_FINAL/bloomify_final/api";
+const API = "http://localhost/bloomify_FINAL/api";
 
 async function checkAuth() {
   const res = await fetch(`${API}/auth.php?action=check`, {
