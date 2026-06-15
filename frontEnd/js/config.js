@@ -1,1 +1,1 @@
-window.API = "http://localhost/bloomify_FINAL/bloomify_final/api";
+window.API = "http://localhost/bloomify_FINAL/api";
