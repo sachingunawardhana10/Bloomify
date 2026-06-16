@@ -1,201 +1,184 @@
 <?php
-require_once "db.php";
-header("Content-Type: application/json");
+require_once 'db.php';
 
-// ── Auth guard ──────────────────────────────────────
-$user_id = $_SESSION['user_id'] ?? null;
-if (!$user_id) {
-    http_response_code(401);
-    echo json_encode(["success" => false, "message" => "Please log in to use the cart."]);
-    exit;
-}
-
+$userId = require_login();
 $action = $_GET['action'] ?? '';
-$data   = json_decode(file_get_contents("php://input"), true) ?? [];
+$data = request_data();
 
-// ═══════════════════════════════════════════════
-//  GET CART
-// ═══════════════════════════════════════════════
-if ($action === 'get') {
-    $stmt = $conn->prepare("
-        SELECT
-            c.id        AS cart_item_id,
-            c.flower_id,
-            c.quantity,
-            f.name,
-            f.emoji,
-            f.price,
-            f.stock,
-            (f.price * c.quantity) AS subtotal
-        FROM cart c
-        INNER JOIN flowers f ON f.id = c.flower_id
-        WHERE c.user_id = ?
-        ORDER BY c.id ASC
-    ");
-    $stmt->bind_param("i", $user_id);
+function get_cart(mysqli $conn, int $userId): array {
+    $stmt = $conn->prepare(
+        'SELECT c.id AS cart_item_id, c.flower_id, c.quantity, f.name, f.emoji, f.price, f.stock,
+                (c.quantity * f.price) AS subtotal
+         FROM cart c
+         INNER JOIN flowers f ON f.id = c.flower_id
+         WHERE c.user_id = ?
+         ORDER BY c.id ASC'
+    );
+
+    $stmt->bind_param('i', $userId);
     $stmt->execute();
+
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
     $items = [];
     $total = 0.0;
     $count = 0;
-    foreach ($rows as $r) {
-        $r['price']    = (float)$r['price'];
-        $r['subtotal'] = (float)$r['subtotal'];
-        $r['quantity'] = (int)$r['quantity'];
-        $r['stock']    = (int)$r['stock'];
-        $total += $r['subtotal'];
-        $count += $r['quantity'];
-        $items[] = $r;
+
+    foreach ($rows as $row) {
+        $row['cart_item_id'] = (int)$row['cart_item_id'];
+        $row['flower_id'] = (int)$row['flower_id'];
+        $row['quantity'] = (int)$row['quantity'];
+        $row['price'] = (float)$row['price'];
+        $row['stock'] = (int)$row['stock'];
+        $row['subtotal'] = (float)$row['subtotal'];
+
+        $total += $row['subtotal'];
+        $count += $row['quantity'];
+
+        $items[] = $row;
     }
 
-    echo json_encode([
-        "success" => true,
-        "items"   => $items,
-        "total"   => round($total, 2),
-        "count"   => $count
-    ]);
-    exit;
+    return [
+        'items' => $items,
+        'total' => round($total, 2),
+        'count' => $count
+    ];
 }
 
-// ═══════════════════════════════════════════════
-//  COUNT ONLY (for nav badge refresh)
-// ═══════════════════════════════════════════════
+if ($action === 'get') {
+    $cart = get_cart($conn, $userId);
+    json_response(['success' => true] + $cart);
+}
+
 if ($action === 'count') {
-    $stmt = $conn->prepare("SELECT COALESCE(SUM(quantity), 0) AS cnt FROM cart WHERE user_id = ?");
-    $stmt->bind_param("i", $user_id);
+    $stmt = $conn->prepare('SELECT COALESCE(SUM(quantity), 0) AS count_items FROM cart WHERE user_id = ?');
+    $stmt->bind_param('i', $userId);
     $stmt->execute();
-    $cnt = (int)$stmt->get_result()->fetch_assoc()['cnt'];
-    echo json_encode(["success" => true, "count" => $cnt]);
-    exit;
+
+    $count = (int)$stmt->get_result()->fetch_assoc()['count_items'];
+    json_response(['success' => true, 'count' => $count]);
 }
 
-// ═══════════════════════════════════════════════
-//  ADD TO CART
-// ═══════════════════════════════════════════════
 if ($action === 'add') {
-    $flower_id = (int)($data['flower_id'] ?? 0);
-    $qty       = max(1, (int)($data['quantity'] ?? 1));
+    $flowerId = (int)($data['flower_id'] ?? 0);
+    $quantity = max(1, (int)($data['quantity'] ?? 1));
 
-    if ($flower_id <= 0) {
-        echo json_encode(["success" => false, "message" => "Invalid flower."]);
-        exit;
+    if ($flowerId <= 0) {
+        json_response(['success' => false, 'message' => 'Invalid flower selected.'], 422);
     }
 
-    // Stock check
-    $fl = $conn->prepare("SELECT stock, name FROM flowers WHERE id = ? LIMIT 1");
-    $fl->bind_param("i", $flower_id);
-    $fl->execute();
-    $flower = $fl->get_result()->fetch_assoc();
+    $stmt = $conn->prepare('SELECT id, name, stock FROM flowers WHERE id = ? LIMIT 1');
+    $stmt->bind_param('i', $flowerId);
+    $stmt->execute();
+
+    $flower = $stmt->get_result()->fetch_assoc();
 
     if (!$flower) {
-        echo json_encode(["success" => false, "message" => "Flower not found."]);
-        exit;
-    }
-    if ($flower['stock'] < 1) {
-        echo json_encode(["success" => false, "message" => "{$flower['name']} is out of stock."]);
-        exit;
+        json_response(['success' => false, 'message' => 'Flower not found.'], 404);
     }
 
-    // Check existing cart item
-    $ex = $conn->prepare("SELECT id, quantity FROM cart WHERE user_id = ? AND flower_id = ? LIMIT 1");
-    $ex->bind_param("ii", $user_id, $flower_id);
-    $ex->execute();
-    $existing = $ex->get_result()->fetch_assoc();
+    $existingQty = 0;
 
-    if ($existing) {
-        $newQty = $existing['quantity'] + $qty;
-        $up = $conn->prepare("UPDATE cart SET quantity = ? WHERE id = ?");
-        $up->bind_param("ii", $newQty, $existing['id']);
+    $existing = $conn->prepare('SELECT quantity FROM cart WHERE user_id = ? AND flower_id = ? LIMIT 1');
+    $existing->bind_param('ii', $userId, $flowerId);
+    $existing->execute();
+
+    $current = $existing->get_result()->fetch_assoc();
+
+    if ($current) {
+        $existingQty = (int)$current['quantity'];
+    }
+
+    if ($existingQty + $quantity > (int)$flower['stock']) {
+        json_response([
+            'success' => false,
+            'message' => $flower['name'] . ' has only ' . $flower['stock'] . ' in stock.'
+        ], 409);
+    }
+
+    if ($current) {
+        $newQty = $existingQty + $quantity;
+
+        $up = $conn->prepare('UPDATE cart SET quantity = ? WHERE user_id = ? AND flower_id = ?');
+        $up->bind_param('iii', $newQty, $userId, $flowerId);
         $up->execute();
     } else {
-        $ins = $conn->prepare("INSERT INTO cart (user_id, flower_id, quantity) VALUES (?, ?, ?)");
-        $ins->bind_param("iii", $user_id, $flower_id, $qty);
+        $ins = $conn->prepare('INSERT INTO cart (user_id, flower_id, quantity) VALUES (?, ?, ?)');
+        $ins->bind_param('iii', $userId, $flowerId, $quantity);
         $ins->execute();
     }
 
-    // Return fresh count
-    $cnt_stmt = $conn->prepare("SELECT COALESCE(SUM(quantity), 0) AS cnt FROM cart WHERE user_id = ?");
-    $cnt_stmt->bind_param("i", $user_id);
-    $cnt_stmt->execute();
-    $count = (int)$cnt_stmt->get_result()->fetch_assoc()['cnt'];
+    $cart = get_cart($conn, $userId);
 
-    echo json_encode(["success" => true, "message" => "Added to cart!", "count" => $count]);
-    exit;
+    json_response([
+        'success' => true,
+        'message' => 'Added to cart.',
+        'count' => $cart['count']
+    ]);
 }
 
-// ═══════════════════════════════════════════════
-//  UPDATE QUANTITY
-// ═══════════════════════════════════════════════
 if ($action === 'update') {
-    $flower_id = (int)($data['flower_id'] ?? 0);
-    $qty       = (int)($data['quantity'] ?? 0);
+    $flowerId = (int)($data['flower_id'] ?? 0);
+    $quantity = (int)($data['quantity'] ?? 0);
 
-    if ($flower_id <= 0) {
-        echo json_encode(["success" => false, "message" => "Invalid flower."]);
-        exit;
+    if ($flowerId <= 0) {
+        json_response(['success' => false, 'message' => 'Invalid flower selected.'], 422);
     }
 
-    if ($qty <= 0) {
-        // Remove item
-        $del = $conn->prepare("DELETE FROM cart WHERE user_id = ? AND flower_id = ?");
-        $del->bind_param("ii", $user_id, $flower_id);
+    if ($quantity <= 0) {
+        $del = $conn->prepare('DELETE FROM cart WHERE user_id = ? AND flower_id = ?');
+        $del->bind_param('ii', $userId, $flowerId);
         $del->execute();
     } else {
-        $upd = $conn->prepare("UPDATE cart SET quantity = ? WHERE user_id = ? AND flower_id = ?");
-        $upd->bind_param("iii", $qty, $user_id, $flower_id);
-        $upd->execute();
+        $stock = $conn->prepare('SELECT stock, name FROM flowers WHERE id = ? LIMIT 1');
+        $stock->bind_param('i', $flowerId);
+        $stock->execute();
+
+        $flower = $stock->get_result()->fetch_assoc();
+
+        if (!$flower) {
+            json_response(['success' => false, 'message' => 'Flower not found.'], 404);
+        }
+
+        if ($quantity > (int)$flower['stock']) {
+            json_response([
+                'success' => false,
+                'message' => $flower['name'] . ' has only ' . $flower['stock'] . ' in stock.'
+            ], 409);
+        }
+
+        $up = $conn->prepare('UPDATE cart SET quantity = ? WHERE user_id = ? AND flower_id = ?');
+        $up->bind_param('iii', $quantity, $userId, $flowerId);
+        $up->execute();
     }
 
-    // Return updated cart
-    $stmt2 = $conn->prepare("
-        SELECT c.flower_id, c.quantity, f.name, f.emoji, f.price, f.stock,
-               (f.price * c.quantity) AS subtotal
-        FROM cart c
-        INNER JOIN flowers f ON f.id = c.flower_id
-        WHERE c.user_id = ?
-        ORDER BY c.id ASC
-    ");
-    $stmt2->bind_param("i", $user_id);
-    $stmt2->execute();
-    $rows2 = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
-
-    $items2 = []; $total2 = 0.0; $count2 = 0;
-    foreach ($rows2 as $r) {
-        $r['price'] = (float)$r['price'];
-        $r['subtotal'] = (float)$r['subtotal'];
-        $r['quantity'] = (int)$r['quantity'];
-        $total2 += $r['subtotal'];
-        $count2 += $r['quantity'];
-        $items2[] = $r;
-    }
-
-    echo json_encode(["success" => true, "items" => $items2, "total" => round($total2, 2), "count" => $count2]);
-    exit;
+    $cart = get_cart($conn, $userId);
+    json_response(['success' => true] + $cart);
 }
 
-// ═══════════════════════════════════════════════
-//  REMOVE ITEM
-// ═══════════════════════════════════════════════
 if ($action === 'remove') {
-    $flower_id = (int)($data['flower_id'] ?? 0);
-    $del = $conn->prepare("DELETE FROM cart WHERE user_id = ? AND flower_id = ?");
-    $del->bind_param("ii", $user_id, $flower_id);
+    $flowerId = (int)($data['flower_id'] ?? 0);
+
+    $del = $conn->prepare('DELETE FROM cart WHERE user_id = ? AND flower_id = ?');
+    $del->bind_param('ii', $userId, $flowerId);
     $del->execute();
-    echo json_encode(["success" => true]);
-    exit;
+
+    $cart = get_cart($conn, $userId);
+    json_response(['success' => true] + $cart);
 }
 
-// ═══════════════════════════════════════════════
-//  CLEAR CART
-// ═══════════════════════════════════════════════
 if ($action === 'clear') {
-    $del = $conn->prepare("DELETE FROM cart WHERE user_id = ?");
-    $del->bind_param("i", $user_id);
+    $del = $conn->prepare('DELETE FROM cart WHERE user_id = ?');
+    $del->bind_param('i', $userId);
     $del->execute();
-    echo json_encode(["success" => true]);
-    exit;
+
+    json_response([
+        'success' => true,
+        'items' => [],
+        'total' => 0,
+        'count' => 0
+    ]);
 }
 
-echo json_encode(["success" => false, "message" => "Unknown action."]);
+json_response(['success' => false, 'message' => 'Unknown cart action.'], 404);
 ?>

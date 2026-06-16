@@ -4,262 +4,381 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Customize Bouquet — Bloomify</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
-  <style>
-    .notes-group{margin-top:16px;}
-    .notes-group label{font-size:13px;font-weight:500;color:var(--text-muted);display:block;margin-bottom:6px;}
-    .notes-group textarea{width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;font-family:inherit;font-size:13px;resize:vertical;min-height:72px;background:var(--bg);color:var(--text);}
-    .notes-group textarea:focus{outline:none;border-color:var(--primary);}
-    .order-success{display:none;text-align:center;padding:32px 20px;}
-    .order-success .success-icon{font-size:56px;margin-bottom:12px;}
-    .order-success h3{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;margin-bottom:8px;color:var(--accent);}
-  </style>
 </head>
 <body>
 <header class="navbar">
-  <a href="index.html" class="brand-logo" aria-label="Bloomify home"><img src="images/bloomify_logo.png" alt="Bloomify logo"></a>
-  <nav><ul>
-    <li><a href="index.html">Home</a></li>
-    <li><a href="catalog.html">Flowers</a></li>
-    <li><a href="customize.html" class="active">Customize</a></li>
-    <li id="nav-login-link"><a href="login.html">Login</a></li>
-  </ul></nav>
+  <a href="index.html" class="brand-logo" aria-label="Bloomify home">
+    <img src="images/bloomify_logo.png" alt="Bloomify logo">
+  </a>
+
+  <nav>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="catalog.html">Flowers</a></li>
+      <li><a href="customize.html" class="active">Customize</a></li>
+      <li id="nav-admin-link" style="display:none;"><a href="admin.html">Admin</a></li>
+      <li id="nav-login-link"><a href="login.html">Login</a></li>
+    </ul>
+  </nav>
+
   <div class="nav-right">
-    <div id="nav-user-info" style="display:none;align-items:center;gap:10px;">
-      <span style="font-size:13px;color:var(--text-muted);font-weight:500;"><i class="fa-solid fa-circle" style="color:var(--accent);font-size:8px;"></i> <span id="nav-user-name"></span></span>
-      <button onclick="handleLogout()" style="background:none;border:none;cursor:pointer;font-size:13px;color:var(--primary);font-weight:500;">Logout</button>
+    <div class="nav-user" id="nav-user-info">
+      <span>
+        <i class="fa-solid fa-circle" style="color:#9fe39f;font-size:8px;"></i>
+        <span id="nav-user-name"></span>
+      </span>
+      <button class="logout-btn" onclick="handleLogout()">Logout</button>
     </div>
-    <a href="cart.html" class="nav-cart-btn"><i class="fa-solid fa-basket-shopping"></i><span id="cart-count" style="display:none;">0</span></a>
+
+    <a href="cart.html" class="nav-cart-btn">
+      <i class="fa-solid fa-basket-shopping"></i>
+      <span id="cart-count" style="display:none;">0</span>
+    </a>
   </div>
 </header>
 
 <div class="page-header">
   <h1>Build Your Bouquet</h1>
-  <p>Pick your flowers and we'll bring your vision to life</p>
+  <p>Live flower and stock data with real images</p>
   <div class="ornament"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
 </div>
 
 <section class="customize-container">
   <div class="panel">
-    <h2><i class="fa-solid fa-seedling" style="font-size:22px;color:var(--accent);"></i> Select Flowers</h2>
+    <h2>
+      <i class="fa-solid fa-seedling" style="color:var(--green);"></i>
+      Select Flowers
+    </h2>
+
     <div class="flower-options" id="flower-options">
-      <div style="text-align:center;padding:24px;color:var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Loading flowers...</div>
-    </div>
-  </div>
-  <div class="panel">
-    <h2><i class="fa-solid fa-heart" style="font-size:20px;color:var(--primary);"></i> Your Bouquet</h2>
-    <div class="bouquet-list" id="bouquet-list">
-      <div class="bouquet-empty" id="bouquet-empty" style="display:flex;">
-        <i class="fa-regular fa-circle-dot"></i>
-        <p>No flowers yet — start selecting<br>from the left panel</p>
+      <div style="text-align:center;padding:24px;color:var(--muted);">
+        <i class="fa-solid fa-spinner fa-spin"></i> Loading flowers...
       </div>
     </div>
-    <div class="bouquet-total"><span>Total</span><strong id="bouquet-total">$0</strong></div>
-    <div class="notes-group" id="notes-group" style="display:none;">
-      <label for="order-notes">Special instructions (optional)</label>
-      <textarea id="order-notes" placeholder="E.g. wrap in pink ribbon, for a birthday..."></textarea>
+  </div>
+
+  <div class="panel">
+    <h2>
+      <i class="fa-solid fa-heart" style="color:var(--primary);"></i>
+      Your Bouquet
+    </h2>
+
+    <div class="bouquet-list" id="bouquet-list">
+      <div class="bouquet-empty">
+        <i class="fa-regular fa-circle-dot"></i>
+        <p>No flowers yet — start selecting from the left panel.</p>
+      </div>
     </div>
-    <button class="btn-order" id="order-btn" disabled onclick="placeOrder()">
-      <i class="fa-solid fa-bag-shopping"></i> Place Order
+
+    <div class="bouquet-total">
+      <span>Total</span>
+      <strong id="bouquet-total">$0.00</strong>
+    </div>
+
+    <button class="btn-order" id="add-bouquet-btn" style="width:100%;margin-top:18px;" disabled onclick="addBouquetToCart()">
+      <i class="fa-solid fa-basket-shopping"></i> Add Bouquet to Cart
     </button>
-    <div class="order-success" id="order-success">
-      <div class="success-icon">🌸</div>
-      <h3>Order Placed!</h3>
-      <p id="order-success-msg">Your bouquet is being prepared with love.</p>
-      <a href="index.html" class="btn-secondary" style="margin-top:16px;display:inline-flex;"><i class="fa-solid fa-house"></i> Back to Home</a>
-    </div>
   </div>
 </section>
 
 <footer>
-  <a href="index.html" class="logo footer-logo-link"><img src="images/bloomify_logo.png" alt="Bloomify logo"><span>Bloom<span>ify</span></span></a>
+  <a href="index.html" class="logo footer-logo-link">
+    <img src="images/bloomify_logo.png" alt="Bloomify logo">
+  </a>
   <p>© 2026 Bloomify. All rights reserved.</p>
-  <p>Made with 🌸 for every occasion</p>
 </footer>
+
+<script src="js/config.js"></script>
 <script src="js/app.js"></script>
 
 <script>
-const API = "http://localhost/bloomify_FINAL/api";
-const bouquet = {}; // {id: {name, emoji, price, qty}}
+const bouquet = new Map();
+const flowersById = new Map();
 
-// Safe DOM getter (prevents crashes)
-function el(id) {
-  return document.getElementById(id);
+let lastCustomizeSignature = '';
+let customizeBusy = false;
+
+function flowerImage(product) {
+  return product.image && product.image.trim() !== ''
+    ? product.image
+    : 'images/flowers/default.jpg';
 }
 
-async function loadFlowers() {
+function renderFlowerOptions(products) {
+  const options = document.getElementById('flower-options');
+  const availableFlowers = products.filter(product => product.in_stock);
+
+  if (!availableFlowers.length) {
+    options.innerHTML = `
+      <p style="color:var(--muted);text-align:center;grid-column:1/-1;">
+        No flowers available right now.
+      </p>
+    `;
+    return;
+  }
+
+  options.innerHTML = availableFlowers.map(product => `
+    <button class="flower-opt-btn" onclick="addFlowerById(${product.id})">
+      <img 
+        class="f-thumb" 
+        src="${escapeHtml(flowerImage(product))}" 
+        alt="${escapeHtml(product.name)}"
+        onerror="this.src='images/flowers/default.jpg';"
+      >
+
+      <span class="f-info">
+        <span class="f-name">${escapeHtml(product.name)}</span>
+        <span class="f-price">${money(product.price)} • ${product.stock} left</span>
+      </span>
+    </button>
+  `).join('');
+}
+
+function syncBouquetWithLatestProducts(products) {
+  const latestMap = new Map();
+
+  products.forEach(product => {
+    latestMap.set(product.id, product);
+  });
+
+  let changed = false;
+
+  for (const [id, item] of bouquet.entries()) {
+    const latest = latestMap.get(id);
+
+    if (!latest || !latest.in_stock || latest.stock <= 0) {
+      bouquet.delete(id);
+      changed = true;
+      continue;
+    }
+
+    if (item.quantity > latest.stock) {
+      item.quantity = latest.stock;
+      changed = true;
+    }
+
+    item.name = latest.name;
+    item.emoji = latest.emoji;
+    item.image = latest.image;
+    item.price = Number(latest.price);
+    item.stock = Number(latest.stock);
+    item.meaning = latest.meaning;
+    item.tag = latest.tag;
+
+    bouquet.set(id, item);
+  }
+
+  if (changed) {
+    showToast('Bouquet updated because stock changed.', 'info');
+  }
+}
+
+async function loadFlowersRealtime(firstLoad = false) {
+  if (customizeBusy) return;
+
+  customizeBusy = true;
+
+  const options = document.getElementById('flower-options');
+
   try {
-    const r = await fetch(`${API}/products.php?action=all`);
-    const d = await r.json();
+    const { data } = await apiFetch('/products.php?action=all');
 
-    const opts = el('flower-options');
+    if (!data.success) {
+      if (firstLoad) {
+        options.innerHTML = `
+          <p style="color:var(--primary);text-align:center;grid-column:1/-1;">
+            Could not load flowers. Check database connection.
+          </p>
+        `;
+      }
 
-    if (!opts) return console.error("flower-options missing");
-
-    if (!d.success || !d.products.length) {
-      opts.innerHTML = `<p style="color:var(--text-muted);text-align:center;">No flowers available.</p>`;
       return;
     }
 
-    opts.innerHTML = d.products
-      .filter(p => p.in_stock)
-      .map(p => `
-        <button class="flower-opt-btn"
-          onclick="addFlower(${p.id}, '${escapeHtml(p.name)}', '${p.emoji}', ${p.price})">
-          <span class="f-emoji">${p.emoji}</span>
-          <span class="f-info">
-            <span class="f-name">${p.name}</span>
-            <span class="f-price">$${parseFloat(p.price).toFixed(2)}</span>
-          </span>
-        </button>
-      `).join('');
+    const products = data.products || [];
+    const newSignature = JSON.stringify(products);
 
-  } catch (e) {
-    console.error(e);
-    el('flower-options').innerHTML =
-      '<p style="color:red;text-align:center;">Failed to load flowers</p>';
+    if (newSignature !== lastCustomizeSignature) {
+      lastCustomizeSignature = newSignature;
+
+      flowersById.clear();
+
+      products.forEach(product => {
+        flowersById.set(product.id, product);
+      });
+
+      syncBouquetWithLatestProducts(products);
+      renderFlowerOptions(products);
+      renderBouquet();
+    }
+  } catch (error) {
+    console.error(error);
+
+    if (firstLoad) {
+      options.innerHTML = `
+        <p style="color:var(--primary);text-align:center;grid-column:1/-1;">
+          Failed to load flowers. Check database connection.
+        </p>
+      `;
+    }
+  } finally {
+    customizeBusy = false;
   }
 }
 
-function addFlower(id, name, emoji, price) {
-  if (!bouquet[id]) {
-    bouquet[id] = { name, emoji, price: Number(price), qty: 1 };
-  } else {
-    bouquet[id].qty++;
+function addFlowerById(id) {
+  const product = flowersById.get(id);
+
+  if (!product) {
+    showToast('This flower is not available anymore.', 'error');
+    return;
   }
+
+  addFlower(product);
+}
+
+function addFlower(product) {
+  if (!product.in_stock || product.stock <= 0) {
+    showToast(`${product.name} is out of stock.`, 'error');
+    return;
+  }
+
+  const current = bouquet.get(product.id) || { ...product, quantity: 0 };
+
+  if (current.quantity >= product.stock) {
+    showToast(`${product.name} has only ${product.stock} in stock.`, 'error');
+    return;
+  }
+
+  current.quantity += 1;
+  bouquet.set(product.id, current);
+
   renderBouquet();
 }
 
-function removeFlower(id) {
-  if (!bouquet[id]) return;
+function changeBouquetQty(id, amount) {
+  const item = bouquet.get(id);
 
-  bouquet[id].qty--;
-  if (bouquet[id].qty <= 0) delete bouquet[id];
+  if (!item) {
+    return;
+  }
+
+  item.quantity += amount;
+
+  if (item.quantity <= 0) {
+    bouquet.delete(id);
+  } else if (item.quantity > item.stock) {
+    item.quantity = item.stock;
+    showToast(`${item.name} has only ${item.stock} in stock.`, 'error');
+  } else {
+    bouquet.set(id, item);
+  }
 
   renderBouquet();
 }
 
 function renderBouquet() {
-  const list = el('bouquet-list');
-  const totalEl = el('bouquet-total');
-  const btn = el('order-btn');
-  const notes = el('notes-group');
-  const empty = el('bouquet-empty');
+  const list = document.getElementById('bouquet-list');
+  const totalEl = document.getElementById('bouquet-total');
+  const button = document.getElementById('add-bouquet-btn');
 
-  if (!list || !totalEl || !btn || !notes) {
-    console.error("Missing DOM elements in customize.html");
+  const items = Array.from(bouquet.values());
+
+  if (!items.length) {
+    list.innerHTML = `
+      <div class="bouquet-empty">
+        <i class="fa-regular fa-circle-dot"></i>
+        <p>No flowers yet — start selecting from the left panel.</p>
+      </div>
+    `;
+
+    totalEl.textContent = '$0.00';
+    button.disabled = true;
     return;
   }
-
-  const keys = Object.keys(bouquet);
-
-  if (keys.length === 0) {
-    list.innerHTML = '';
-    if (empty) list.appendChild(empty);
-
-    if (empty) empty.style.display = 'flex';
-    totalEl.textContent = '$0';
-    btn.disabled = true;
-    notes.style.display = 'none';
-    return;
-  }
-
-  if (empty) empty.style.display = 'none';
 
   let total = 0;
 
-  list.innerHTML = keys.map(id => {
-    const f = bouquet[id];
-    total += f.price * f.qty;
+  list.innerHTML = items.map(item => {
+    total += Number(item.price) * Number(item.quantity);
 
     return `
       <div class="bouquet-item">
-        <div>
-          <span>${f.emoji}</span>
-          <span>${f.name}</span>
-          <strong>x${f.qty}</strong>
+        <div class="bouquet-item-main">
+          <img 
+            class="bouquet-thumb" 
+            src="${escapeHtml(flowerImage(item))}" 
+            alt="${escapeHtml(item.name)}"
+            onerror="this.src='images/flowers/default.jpg';"
+          >
+
+          <div>
+            <strong>${escapeHtml(item.name)}</strong><br>
+            <small>${money(item.price)} each • ${item.stock} left</small>
+          </div>
         </div>
 
-        <div>
-          <span>$${(f.price * f.qty).toFixed(2)}</span>
-          <button onclick="removeFlower(${id})">-</button>
+        <div class="qty-actions">
+          <button onclick="changeBouquetQty(${item.id}, -1)">−</button>
+          <strong>${item.quantity}</strong>
+          <button onclick="changeBouquetQty(${item.id}, 1)">+</button>
         </div>
       </div>
     `;
   }).join('');
 
-  totalEl.textContent = '$' + total.toFixed(2);
-  btn.disabled = false;
-  notes.style.display = 'block';
+  totalEl.textContent = money(total);
+  button.disabled = false;
 }
 
-// safe HTML escape (prevents broken onclick strings)
-function escapeHtml(str) {
-  return String(str)
-    .replaceAll("'", "\\'")
-    .replaceAll('"', '&quot;');
-}
-
-// prevent crash if called early
-document.addEventListener("DOMContentLoaded", () => {
-  loadFlowers();
-});
-
-async function checkSession() {
-  try {
-    const res = await fetch(`${API}/auth.php?action=check`, {
-      credentials: "include"
-    });
-    return await res.json();
-  } catch (e) {
-    console.error("Session check failed", e);
-    return { logged_in: false };
-  }
-}
-
-
-async function placeOrder() {
+async function addBouquetToCart() {
   const session = await checkSession();
 
   if (!session.logged_in) {
-    alert("Please login first");
-    window.location.href = "login.html";
+    showToast('Please login before adding a bouquet.', 'error');
+    setTimeout(() => window.location.href = 'login.html', 700);
     return;
   }
 
-  const items = Object.entries(bouquet).map(([id, f]) => ({
-    flower_id: parseInt(id),
-    quantity: f.qty
-  }));
+  const button = document.getElementById('add-bouquet-btn');
+
+  button.disabled = true;
+  button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding...';
 
   try {
-    // 1. CLEAR OLD CART FIRST (optional safety)
-    await fetch(`${API}/cart.php?action=clear`, {
-      method: "POST",
-      credentials: "include"
-    });
+    for (const item of bouquet.values()) {
+      const ok = await addToCart(null, item.id, item.quantity);
 
-    // 2. ADD ALL ITEMS TO CART
-    for (const item of items) {
-      await fetch(`${API}/cart.php?action=add`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(item)
-      });
+      if (!ok) {
+        throw new Error('Could not add all bouquet items.');
+      }
     }
 
-    // 3. NOW REDIRECT TO CART PAGE
-    window.location.href = "cart.html";
+    showToast('Bouquet added to cart.');
+    bouquet.clear();
+    renderBouquet();
 
-  } catch (e) {
-    console.error(e);
-    alert("Failed to add bouquet to cart");
+    setTimeout(() => window.location.href = 'cart.html', 700);
+  } catch (error) {
+    console.error(error);
+    showToast(error.message || 'Failed to add bouquet.', 'error');
+
+    button.disabled = false;
+    button.innerHTML = '<i class="fa-solid fa-basket-shopping"></i> Add Bouquet to Cart';
   }
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+  loadFlowersRealtime(true);
+
+  setInterval(() => {
+    if (!document.hidden) {
+      loadFlowersRealtime(false);
+    }
+  }, 3000);
+});
 </script>
 </body>
 </html>

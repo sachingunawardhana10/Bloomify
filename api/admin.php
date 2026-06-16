@@ -1,155 +1,213 @@
 <?php
-require "db.php";
-header("Content-Type: application/json");
-
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    echo json_encode(["success"=>false,"message"=>"Unauthorized"]);
-    exit;
-}
+require_once 'db.php';
+require_admin();
 
 $action = $_GET['action'] ?? '';
+$data = request_data();
 
-/* STATS */
-if ($action === "stats") {
+if ($action === 'stats') {
+    $orders = (int)$conn->query('SELECT COUNT(*) AS c FROM orders')->fetch_assoc()['c'];
+    $products = (int)$conn->query('SELECT COUNT(*) AS c FROM flowers')->fetch_assoc()['c'];
+    $customers = (int)$conn->query("SELECT COUNT(*) AS c FROM users WHERE role = 'customer'")->fetch_assoc()['c'];
+    $revenue = (float)$conn->query('SELECT COALESCE(SUM(total), 0) AS t FROM orders')->fetch_assoc()['t'];
 
-    $orders = $conn->query("SELECT COUNT(*) c FROM orders")->fetch_assoc()['c'];
-    $products = $conn->query("SELECT COUNT(*) c FROM flowers")->fetch_assoc()['c'];
-    $revenue = $conn->query("SELECT COALESCE(SUM(total),0) t FROM orders")->fetch_assoc()['t'];
-
-    echo json_encode([
-        "success"=>true,
-        "stats"=>[
-            "orders"=>$orders,
-            "products"=>$products,
-            "revenue"=>$revenue
+    json_response([
+        'success' => true,
+        'stats' => [
+            'orders' => $orders,
+            'products' => $products,
+            'customers' => $customers,
+            'revenue' => round($revenue, 2)
         ]
     ]);
-    exit;
 }
 
-/* ORDERS */
-if ($action === "orders") {
+if ($action === 'orders') {
+    $result = $conn->query(
+        'SELECT o.id, o.total, o.status, o.notes, o.created_at, u.name, u.email
+         FROM orders o
+         INNER JOIN users u ON u.id = o.user_id
+         ORDER BY o.id DESC'
+    );
 
-    $res = $conn->query("
-        SELECT o.id, o.total, o.status, u.name
-        FROM orders o
-        JOIN users u ON u.id = o.user_id
-        ORDER BY o.id DESC
-    ");
+    $orders = [];
 
-    echo json_encode([
-        "success"=>true,
-        "orders"=>$res->fetch_all(MYSQLI_ASSOC)
-    ]);
-    exit;
-}
-
-/* PRODUCTS */
-if ($action === "products") {
-
-    $res = $conn->query("SELECT * FROM flowers ORDER BY id DESC");
-
-    echo json_encode([
-        "success"=>true,
-        "products"=>$res->fetch_all(MYSQLI_ASSOC)
-    ]);
-    exit;
-}
-
-
-/* ADD PRODUCT */
-if ($action === "add-product") {
-
-    $data = json_decode(file_get_contents("php://input"), true);
-
-    $name = $data['name'] ?? '';
-    $emoji = $data['emoji'] ?? '';
-    $price = $data['price'] ?? 0;
-    $tag = $data['tag'] ?? '';
-    $meaning = $data['meaning'] ?? '';
-
-    $stmt = $conn->prepare("
-        INSERT INTO flowers
-        (name, emoji, price, tag, meaning)
-        VALUES (?, ?, ?, ?, ?)
-    ");
-
-    if (!$stmt) {
-        echo json_encode([
-            "success" => false,
-            "message" => $conn->error
-        ]);
-        exit;
+    while ($row = $result->fetch_assoc()) {
+        $row['id'] = (int)$row['id'];
+        $row['total'] = (float)$row['total'];
+        $orders[] = $row;
     }
 
+    json_response([
+        'success' => true,
+        'orders' => $orders
+    ]);
+}
+
+if ($action === 'update-order') {
+    $id = (int)($data['id'] ?? 0);
+    $status = strtolower(trim($data['status'] ?? ''));
+
+    $allowed = ['pending', 'processing', 'delivered', 'cancelled'];
+
+    if ($id <= 0 || !in_array($status, $allowed, true)) {
+        json_response([
+            'success' => false,
+            'message' => 'Invalid order status.'
+        ], 422);
+    }
+
+    $stmt = $conn->prepare('UPDATE orders SET status = ? WHERE id = ?');
+    $stmt->bind_param('si', $status, $id);
+    $stmt->execute();
+
+    json_response([
+        'success' => true,
+        'message' => 'Order updated.'
+    ]);
+}
+
+if ($action === 'products') {
+    $result = $conn->query(
+        'SELECT id, name, emoji, image, price, meaning, tag, stock 
+         FROM flowers 
+         ORDER BY id DESC'
+    );
+
+    $products = [];
+
+    while ($row = $result->fetch_assoc()) {
+        $row['id'] = (int)$row['id'];
+        $row['price'] = (float)$row['price'];
+        $row['stock'] = (int)$row['stock'];
+
+        if (empty($row['image'])) {
+            $row['image'] = 'images/flowers/default.jpg';
+        }
+
+        $products[] = $row;
+    }
+
+    json_response([
+        'success' => true,
+        'products' => $products
+    ]);
+}
+
+if ($action === 'save-product') {
+    $id = (int)($data['id'] ?? 0);
+    $name = trim($data['name'] ?? '');
+    $emoji = trim($data['emoji'] ?? '🌸');
+    $image = trim($data['image'] ?? 'images/flowers/default.jpg');
+    $price = (float)($data['price'] ?? 0);
+    $tag = trim($data['tag'] ?? '');
+    $meaning = trim($data['meaning'] ?? '');
+    $stock = max(0, (int)($data['stock'] ?? 0));
+
+    if ($name === '' || $price <= 0 || $meaning === '') {
+        json_response([
+            'success' => false,
+            'message' => 'Name, price and meaning are required.'
+        ], 422);
+    }
+
+    if ($image === '') {
+        $image = 'images/flowers/default.jpg';
+    }
+
+    if ($id > 0) {
+        $stmt = $conn->prepare(
+            'UPDATE flowers 
+             SET name = ?, emoji = ?, image = ?, price = ?, tag = ?, meaning = ?, stock = ? 
+             WHERE id = ?'
+        );
+
+        $stmt->bind_param(
+            'sssdssii',
+            $name,
+            $emoji,
+            $image,
+            $price,
+            $tag,
+            $meaning,
+            $stock,
+            $id
+        );
+
+        $stmt->execute();
+
+        json_response([
+            'success' => true,
+            'message' => 'Product updated.'
+        ]);
+    }
+
+    $stmt = $conn->prepare(
+        'INSERT INTO flowers (name, emoji, image, price, tag, meaning, stock) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)'
+    );
+
     $stmt->bind_param(
-        "ssdss",
+        'sssdssi',
         $name,
         $emoji,
+        $image,
         $price,
         $tag,
-        $meaning
+        $meaning,
+        $stock
     );
 
-    $success = $stmt->execute();
+    $stmt->execute();
 
-    echo json_encode([
-        "success" => $success,
-        "message" => $success ? "Product added" : $stmt->error
+    json_response([
+        'success' => true,
+        'message' => 'Product added.'
     ]);
-
-    exit;
 }
 
-/* UPDATE PRODUCT */
-if ($action === "update-product") {
+if ($action === 'delete-product') {
+    $id = (int)($data['id'] ?? ($_GET['id'] ?? 0));
 
-    $data = json_decode(file_get_contents("php://input"), true);
+    if ($id <= 0) {
+        json_response([
+            'success' => false,
+            'message' => 'Invalid product id.'
+        ], 422);
+    }
 
-    $stmt = $conn->prepare("
-        UPDATE flowers
-        SET name=?, image=?, price=?, tag=?, meaning=?
-        WHERE id=?
-    ");
+    $stmt = $conn->prepare('DELETE FROM flowers WHERE id = ?');
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
 
-    $stmt->bind_param(
-        "sssssi",
-        $data['name'],
-        $data['image'],
-        $data['price'],
-        $data['tag'],
-        $data['meaning'],
-        $data['id']
+    json_response([
+        'success' => true,
+        'message' => 'Product deleted.'
+    ]);
+}
+
+if ($action === 'users') {
+    $result = $conn->query(
+        'SELECT id, name, email, role, created_at 
+         FROM users 
+         ORDER BY id DESC'
     );
 
-    echo json_encode([
-        "success" => $stmt->execute()
+    $users = [];
+
+    while ($row = $result->fetch_assoc()) {
+        $row['id'] = (int)$row['id'];
+        $users[] = $row;
+    }
+
+    json_response([
+        'success' => true,
+        'users' => $users
     ]);
-    exit;
 }
 
-/* DELETE PRODUCT */
-if ($action === "delete-product") {
-
-    $id = $_GET['id'] ?? 0;
-
-    $stmt = $conn->prepare("DELETE FROM flowers WHERE id=?");
-    $stmt->bind_param("i", $id);
-
-    echo json_encode([
-        "success" => $stmt->execute()
-    ]);
-    exit;
-}
-
-/* USERS */
-if ($action === "users") {
-
-    $res = $conn->query("SELECT id,name,email,role FROM users");
-
-    echo json_encode([
-        "success"=>true,
-        "users"=>$res->fetch_all(MYSQLI_ASSOC)
-    ]);
-    exit;
-}
+json_response([
+    'success' => false,
+    'message' => 'Unknown admin action.'
+], 404);
+?>
