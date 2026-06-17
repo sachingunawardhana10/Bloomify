@@ -7,9 +7,29 @@ $data = request_data();
 
 if ($action === 'place') {
     $notes = trim($data['notes'] ?? '');
+    $paymentMethod = trim($data['payment_method'] ?? 'Cash on Delivery');
+
+    $allowedPaymentMethods = [
+        'Cash on Delivery',
+        'PayHere Online'
+    ];
+
+    if (!in_array($paymentMethod, $allowedPaymentMethods, true)) {
+        json_response([
+            'success' => false,
+            'message' => 'Invalid payment method.'
+        ], 422);
+    }
+
+    $paymentStatus = $paymentMethod === 'PayHere Online' ? 'Pending' : 'Unpaid';
 
     $stmt = $conn->prepare(
-        'SELECT c.flower_id, c.quantity, f.name, f.price, f.stock
+        'SELECT 
+            c.flower_id,
+            c.quantity,
+            f.name,
+            f.price,
+            f.stock
          FROM cart c
          INNER JOIN flowers f ON f.id = c.flower_id
          WHERE c.user_id = ?'
@@ -21,7 +41,10 @@ if ($action === 'place') {
     $cart = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
     if (empty($cart)) {
-        json_response(['success' => false, 'message' => 'Your cart is empty.'], 422);
+        json_response([
+            'success' => false,
+            'message' => 'Your cart is empty.'
+        ], 422);
     }
 
     $total = 0.0;
@@ -42,19 +65,68 @@ if ($action === 'place') {
     try {
         $status = 'pending';
 
-        $order = $conn->prepare('INSERT INTO orders (user_id, total, status, notes) VALUES (?, ?, ?, ?)');
-        $order->bind_param('idss', $userId, $total, $status, $notes);
-        $order->execute();
+        $order = $conn->prepare(
+            'INSERT INTO orders 
+            (
+                user_id,
+                total,
+                status,
+                notes,
+                payment_method,
+                payment_status
+            )
+            VALUES (?, ?, ?, ?, ?, ?)'
+        );
 
+        $order->bind_param(
+            'idssss',
+            $userId,
+            $total,
+            $status,
+            $notes,
+            $paymentMethod,
+            $paymentStatus
+        );
+
+        $order->execute();
         $orderId = $conn->insert_id;
 
         foreach ($cart as $item) {
-            $orderItem = $conn->prepare('INSERT INTO order_items (order_id, flower_id, quantity, price) VALUES (?, ?, ?, ?)');
-            $orderItem->bind_param('iiid', $orderId, $item['flower_id'], $item['quantity'], $item['price']);
+            $orderItem = $conn->prepare(
+                'INSERT INTO order_items 
+                (
+                    order_id,
+                    flower_id,
+                    quantity,
+                    price
+                )
+                VALUES (?, ?, ?, ?)'
+            );
+
+            $orderItem->bind_param(
+                'iiid',
+                $orderId,
+                $item['flower_id'],
+                $item['quantity'],
+                $item['price']
+            );
+
             $orderItem->execute();
 
-            $stock = $conn->prepare('UPDATE flowers SET stock = stock - ? WHERE id = ?');
-            $stock->bind_param('ii', $item['quantity'], $item['flower_id']);
+            // Reserve stock immediately after order creation.
+            // For a student project, this is simple and practical.
+            $stock = $conn->prepare(
+                'UPDATE flowers
+                 SET stock = stock - ?
+                 WHERE id = ?'
+            );
+
+            $stock->bind_param(
+                'ii',
+                $item['quantity'],
+                $item['flower_id']
+            );
+
             $stock->execute();
         }
 
@@ -68,7 +140,9 @@ if ($action === 'place') {
             'success' => true,
             'message' => 'Order placed successfully.',
             'order_id' => (int)$orderId,
-            'total' => round($total, 2)
+            'total' => round($total, 2),
+            'payment_method' => $paymentMethod,
+            'payment_status' => $paymentStatus
         ]);
     } catch (Throwable $e) {
         $conn->rollback();
@@ -81,7 +155,21 @@ if ($action === 'place') {
 }
 
 if ($action === 'mine') {
-    $stmt = $conn->prepare('SELECT id, total, status, notes, created_at FROM orders WHERE user_id = ? ORDER BY id DESC');
+    $stmt = $conn->prepare(
+        'SELECT 
+            id,
+            total,
+            status,
+            notes,
+            payment_method,
+            payment_status,
+            payment_reference,
+            created_at
+         FROM orders
+         WHERE user_id = ?
+         ORDER BY id DESC'
+    );
+
     $stmt->bind_param('i', $userId);
     $stmt->execute();
 
@@ -92,7 +180,12 @@ if ($action === 'mine') {
         $order['total'] = (float)$order['total'];
 
         $items = $conn->prepare(
-            'SELECT oi.flower_id, oi.quantity, oi.price, f.name, f.emoji
+            'SELECT 
+                oi.flower_id,
+                oi.quantity,
+                oi.price,
+                f.name,
+                f.emoji
              FROM order_items oi
              INNER JOIN flowers f ON f.id = oi.flower_id
              WHERE oi.order_id = ?'
@@ -104,8 +197,14 @@ if ($action === 'mine') {
         $order['items'] = $items->get_result()->fetch_all(MYSQLI_ASSOC);
     }
 
-    json_response(['success' => true, 'orders' => $orders]);
+    json_response([
+        'success' => true,
+        'orders' => $orders
+    ]);
 }
 
-json_response(['success' => false, 'message' => 'Unknown orders action.'], 404);
+json_response([
+    'success' => false,
+    'message' => 'Unknown orders action.'
+], 404);
 ?>

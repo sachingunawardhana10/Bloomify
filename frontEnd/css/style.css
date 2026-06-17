@@ -1089,3 +1089,22 @@ footer{
   flex-shrink:0;
   border:1px solid var(--border);
 }
+.cart-product-img{
+  width:54px;
+  height:54px;
+  border-radius:16px;
+  object-fit:cover;
+  border:1px solid var(--border);
+  background:#fff1f5;
+  flex-shrink:0;
+}
+
+.notes-group select{
+  width:100%;
+  border:1px solid var(--border);
+  background:#fff;
+  border-radius:16px;
+  padding:12px 14px;
+  color:var(--text);
+  font-weight:700;
+}

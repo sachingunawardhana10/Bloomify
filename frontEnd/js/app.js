@@ -27,7 +27,10 @@ async function apiFetch(endpoint, options = {}) {
 }
 
 function money(value) {
-  return `$${Number(value || 0).toFixed(2)}`;
+  return `Rs. ${Number(value || 0).toLocaleString('en-LK', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`;
 }
 
 function escapeHtml(value) {

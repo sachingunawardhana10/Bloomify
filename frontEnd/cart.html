@@ -94,6 +94,14 @@
       </div>
 
       <div class="notes-group">
+        <label for="payment-method">Payment Method</label>
+        <select id="payment-method" required>
+          <option value="Cash on Delivery">Cash on Delivery</option>
+          <option value="PayHere Online">PayHere Online</option>
+        </select>
+      </div>
+
+      <div class="notes-group">
         <label for="cart-notes">Special instructions (optional)</label>
         <textarea id="cart-notes" placeholder="E.g. gift wrap, birthday message, delivery note..."></textarea>
       </div>
@@ -131,6 +139,12 @@
 
 <script>
 let cartItems = [];
+
+function cartImage(item) {
+  return item.image && item.image.trim() !== ''
+    ? item.image
+    : 'images/flowers/default.jpg';
+}
 
 async function loadCart() {
   const loading = document.getElementById('cart-loading');
@@ -186,7 +200,13 @@ function renderCart(data) {
     <tr>
       <td>
         <div class="cart-product">
-          <span class="cart-product-emoji">${escapeHtml(item.emoji)}</span>
+          <img 
+            class="cart-product-img"
+            src="${escapeHtml(cartImage(item))}" 
+            alt="${escapeHtml(item.name)}"
+            onerror="this.src='images/flowers/default.jpg';"
+          >
+
           <div>
             <strong>${escapeHtml(item.name)}</strong><br>
             <small>${item.stock} in stock</small>
@@ -270,27 +290,41 @@ async function checkout() {
   }
 
   const button = document.getElementById('checkout-btn');
+  const notes = document.getElementById('cart-notes').value.trim();
+  const paymentMethod = document.getElementById('payment-method').value;
+
+  if (!paymentMethod) {
+    return showToast('Please select a payment method.', 'error');
+  }
 
   button.disabled = true;
   button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Placing order...';
 
   try {
-    const notes = document.getElementById('cart-notes').value.trim();
-
     const { data } = await apiFetch('/orders.php?action=place', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notes })
+      body: JSON.stringify({
+        notes: notes,
+        payment_method: paymentMethod
+      })
     });
 
     if (data.success) {
-      document.getElementById('cart-content').style.display = 'none';
-      document.getElementById('cart-success').style.display = 'block';
-      document.getElementById('success-details').textContent =
-        `Order #${data.order_id} confirmed — Total ${money(data.total)}.`;
-
       cartItems = [];
       updateCartCount(0);
+
+      if (paymentMethod === 'PayHere Online') {
+        showToast('Redirecting to secure payment...');
+        window.location.href = `${window.API}/payhere_start.php?order_id=${data.order_id}`;
+        return;
+      }
+
+      document.getElementById('cart-content').style.display = 'none';
+      document.getElementById('cart-success').style.display = 'block';
+
+      document.getElementById('success-details').textContent =
+        `Order #${data.order_id} confirmed — Total ${money(data.total)}. Payment: Cash on Delivery.`;
     } else {
       showToast(data.message || 'Order failed.', 'error');
 
