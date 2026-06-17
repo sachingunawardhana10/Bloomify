@@ -6,6 +6,8 @@
     const projectRoot = pathParts.slice(0, frontIndex).join('/');
     window.API = `${window.location.origin}${projectRoot}/api`;
   } else {
-    window.API = `${window.location.origin}/bloomify_final/api`;
+    window.API = `${window.location.origin}/Bloomify/api`;
   }
+
+  console.log("API path:", window.API);
 })();

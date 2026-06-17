@@ -33,7 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // If your MySQL password is root123, change this to: $dbPass = 'root123';
 $dbHost = 'localhost';
 $dbUser = 'root';
-$dbPass = 'root123';
+$dbPass = 'Hyunjin!76';
 $dbName = 'bloomify';
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
