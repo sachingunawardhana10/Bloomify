@@ -26,6 +26,7 @@ if ($action === 'login') {
     $valid = $isHash ? password_verify($password, $stored) : hash_equals($stored, $password);
 
     if (!$valid) {
+        
         json_response(['success' => false, 'message' => 'Invalid email or password.'], 401);
     }
 
