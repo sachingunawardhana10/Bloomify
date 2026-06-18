@@ -1,96 +1,223 @@
 <?php
 require_once 'db.php';
 
-$action = $_GET['action'] ?? 'flowers';
+$action = $_GET['action'] ?? 'all';
+$data = request_data();
 
-try {
+function products_table_exists(mysqli $conn, string $table): bool {
+    $stmt = $conn->prepare(
+        "SELECT COUNT(*) AS count_value
+         FROM INFORMATION_SCHEMA.TABLES
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = ?"
+    );
 
-    // 'flowers' (used by app.js's hero teaser) and 'all' / 'list' / ''
-    // (used by catalog.html / customize.html, plus aliases a teammate added)
-    // all return the same shape, just under a different key.
-    if ($action === 'flowers' || $action === 'all' || $action === 'list' || $action === '') {
+    $stmt->bind_param("s", $table);
+    $stmt->execute();
 
-        $sql = "
-            SELECT
-                f.id,
-                f.name,
-                f.emoji,
-                f.image,
-                f.meaning,
-                f.tag,
-                v.id    AS variety_id,
-                v.variety_name,
-                v.color_hex,
-                v.price AS variety_price,
-                v.stock AS variety_stock
-            FROM flowers f
-            LEFT JOIN flower_varieties v ON v.flower_id = f.id
-            ORDER BY f.id ASC, v.price ASC
-        ";
+    $result = $stmt->get_result()->fetch_assoc();
 
-        $result = $conn->query($sql);
+    return (int)$result['count_value'] > 0;
+}
 
-        $flowers = [];
+function products_column_exists(mysqli $conn, string $table, string $column): bool {
+    $stmt = $conn->prepare(
+        "SELECT COUNT(*) AS count_value
+         FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = ?
+           AND COLUMN_NAME = ?"
+    );
 
-        while ($row = $result->fetch_assoc()) {
-            $id = (int)$row['id'];
+    $stmt->bind_param("ss", $table, $column);
+    $stmt->execute();
 
-            if (!isset($flowers[$id])) {
-                $flowers[$id] = [
-                    'id'        => $id,
-                    'name'      => $row['name'],
-                    'emoji'     => $row['emoji'],
-                    'image'     => $row['image'] ?: 'images/flowers/default.jpg',
-                    'meaning'   => $row['meaning'],
-                    'tag'       => $row['tag'],
-                    'varieties' => []
-                ];
-            }
+    $result = $stmt->get_result()->fetch_assoc();
 
-            if ($row['variety_id'] !== null) {
-                $flowers[$id]['varieties'][] = [
-                    'id'    => (int)$row['variety_id'],
-                    'name'  => $row['variety_name'],
-                    'color' => $row['color_hex'],
-                    'price' => (float)$row['variety_price'],
-                    'stock' => (int)$row['variety_stock']
-                ];
-            }
-        }
+    return (int)$result['count_value'] > 0;
+}
 
-        $flowers = array_values($flowers);
-
-        // Keep top-level price/stock as aggregates so any code still reading
-        // flower.price / flower.stock directly (e.g. the simple hero teaser
-        // in app.js) keeps working without changes.
-        foreach ($flowers as &$flower) {
-            $prices = array_column($flower['varieties'], 'price');
-            $stocks = array_column($flower['varieties'], 'stock');
-
-            $flower['price']    = $prices ? min($prices) : 0;
-            $flower['stock']    = $stocks ? array_sum($stocks) : 0;
-            $flower['in_stock'] = $flower['stock'] > 0;
-        }
-        unset($flower);
-
-        $responseKey = $action === 'flowers' ? 'data' : 'products';
-
-        json_response([
-            'success'    => true,
-            $responseKey => $flowers
-        ]);
+function ensure_flower_columns(mysqli $conn): void {
+    if (!products_column_exists($conn, 'flowers', 'emoji')) {
+        $conn->query("ALTER TABLE flowers ADD COLUMN emoji VARCHAR(20) DEFAULT '🌸' AFTER name");
     }
 
-    json_response([
-        'success' => false,
-        'message' => 'Unknown products action.'
-    ], 404);
+    if (!products_column_exists($conn, 'flowers', 'image')) {
+        $conn->query("ALTER TABLE flowers ADD COLUMN image VARCHAR(255) DEFAULT 'images/flowers/default.jpg' AFTER emoji");
+    }
 
-} catch (Throwable $e) {
+    if (!products_column_exists($conn, 'flowers', 'meaning')) {
+        $conn->query("ALTER TABLE flowers ADD COLUMN meaning TEXT NULL AFTER price");
+    }
 
-    json_response([
-        'success' => false,
-        'message' => 'Products API failed.',
-        'error' => $e->getMessage()
-    ], 500);
+    if (!products_column_exists($conn, 'flowers', 'tag')) {
+        $conn->query("ALTER TABLE flowers ADD COLUMN tag VARCHAR(100) NULL AFTER meaning");
+    }
+
+    if (!products_column_exists($conn, 'flowers', 'stock')) {
+        $conn->query("ALTER TABLE flowers ADD COLUMN stock INT DEFAULT 20 AFTER tag");
+    }
 }
+
+function ensure_variety_table(mysqli $conn): void {
+    if (!products_table_exists($conn, 'flower_varieties')) {
+        $conn->query(
+            "CREATE TABLE flower_varieties (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                flower_id INT NOT NULL,
+                name VARCHAR(100) NOT NULL DEFAULT 'Standard',
+                color VARCHAR(50) DEFAULT '#c84f73',
+                price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                stock INT NOT NULL DEFAULT 20,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (flower_id) REFERENCES flowers(id) ON DELETE CASCADE
+            )"
+        );
+    }
+}
+
+if ($action === 'all') {
+    try {
+        ensure_flower_columns($conn);
+        ensure_variety_table($conn);
+
+        $flowerResult = $conn->query(
+            "SELECT 
+                id,
+                name,
+                emoji,
+                image,
+                price,
+                meaning,
+                tag,
+                stock
+             FROM flowers
+             ORDER BY id ASC"
+        );
+
+        if (!$flowerResult) {
+            json_response([
+                'success' => false,
+                'message' => 'Flower query failed.',
+                'error' => $conn->error
+            ], 500);
+        }
+
+        $products = [];
+
+        while ($flower = $flowerResult->fetch_assoc()) {
+            $flowerId = (int)$flower['id'];
+
+            $flower['id'] = $flowerId;
+            $flower['price'] = (float)$flower['price'];
+            $flower['stock'] = (int)$flower['stock'];
+
+            if (empty($flower['emoji'])) {
+                $flower['emoji'] = '🌸';
+            }
+
+            if (empty($flower['image'])) {
+                $flower['image'] = 'images/flowers/default.jpg';
+            }
+
+            if ($flower['meaning'] === null) {
+                $flower['meaning'] = '';
+            }
+
+            if ($flower['tag'] === null) {
+                $flower['tag'] = 'Bloomify';
+            }
+
+            $varietyStmt = $conn->prepare(
+                "SELECT 
+                    id,
+                    flower_id,
+                    name,
+                    color,
+                    price,
+                    stock
+                 FROM flower_varieties
+                 WHERE flower_id = ?
+                 ORDER BY id ASC"
+            );
+
+            $varietyStmt->bind_param('i', $flowerId);
+            $varietyStmt->execute();
+
+            $varietyResult = $varietyStmt->get_result();
+            $varieties = [];
+
+            while ($variety = $varietyResult->fetch_assoc()) {
+                $varieties[] = [
+                    'id' => (int)$variety['id'],
+                    'flower_id' => (int)$variety['flower_id'],
+                    'name' => $variety['name'] ?: 'Standard',
+                    'color' => $variety['color'] ?: '#c84f73',
+                    'price' => (float)$variety['price'],
+                    'stock' => (int)$variety['stock']
+                ];
+            }
+
+            if (empty($varieties)) {
+                $insertVariety = $conn->prepare(
+                    "INSERT INTO flower_varieties
+                    (
+                        flower_id,
+                        name,
+                        color,
+                        price,
+                        stock
+                    )
+                    VALUES (?, 'Standard', '#c84f73', ?, ?)"
+                );
+
+                $insertVariety->bind_param(
+                    'idi',
+                    $flowerId,
+                    $flower['price'],
+                    $flower['stock']
+                );
+
+                $insertVariety->execute();
+
+                $varieties[] = [
+                    'id' => (int)$conn->insert_id,
+                    'flower_id' => $flowerId,
+                    'name' => 'Standard',
+                    'color' => '#c84f73',
+                    'price' => (float)$flower['price'],
+                    'stock' => (int)$flower['stock']
+                ];
+            }
+
+            $totalStock = 0;
+
+            foreach ($varieties as $variety) {
+                $totalStock += (int)$variety['stock'];
+            }
+
+            $flower['varieties'] = $varieties;
+            $flower['stock'] = $totalStock;
+            $flower['in_stock'] = $totalStock > 0;
+
+            $products[] = $flower;
+        }
+
+        json_response([
+            'success' => true,
+            'products' => $products
+        ]);
+    } catch (Throwable $e) {
+        json_response([
+            'success' => false,
+            'message' => 'Products failed.',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+}
+
+json_response([
+    'success' => false,
+    'message' => 'Unknown products action.'
+], 404);
+?>
