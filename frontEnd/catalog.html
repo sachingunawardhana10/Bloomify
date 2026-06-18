@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flower Catalog — Bloomify</title>
+  <title>Flower Catalog - Bloomify</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -48,15 +48,22 @@
   <div class="ornament"><i class="fa-solid fa-leaf"></i></div>
 </div>
 
+<div class="category-tabs">
+  <button class="active" data-category="All">All</button>
+  <button data-category="Popular">Popular</button>
+  <button data-category="New">New Arrivals</button>
+  <button data-category="Emotion">Emotions</button>
+  <button data-category="Occasion">Occasions</button>
+</div>
 
-<!-- Existing skeleton loader -->
+<div id="subCategoryCards" class="sub-category-cards"></div>
+
 <section class="catalog" id="catalog-loading">
   <div class="skel-card"></div>
   <div class="skel-card"></div>
   <div class="skel-card"></div>
 </section>
 
-<!-- Existing grid (your current system) -->
 <section class="catalog" id="catalog-grid" style="display:none;"></section>
 
 <footer>
@@ -77,7 +84,57 @@
 let lastCatalogSignature = '';
 let catalogBusy = false;
 let lastCatalogProducts = [];
-let expandedFlowerId = null; // which card's varieties are currently shown
+let expandedFlowerId = null;
+let activeCategory = 'All';
+let activeSubcategory = '';
+
+const subCategories = {
+  Emotion: [
+    'Love',
+    'Happiness',
+    'Friendship',
+    'Gratitude',
+    'Sympathy',
+    'Apology'
+  ],
+  Occasion: [
+    'Birthday',
+    'Anniversary',
+    'Wedding',
+    'Graduation',
+    "Mother's Day",
+    "Valentine's Day"
+  ]
+};
+
+function renderSubCategories(category) {
+  const container = document.getElementById('subCategoryCards');
+
+  if (!subCategories[category]) {
+    container.innerHTML = '';
+    activeSubcategory = '';
+    return;
+  }
+
+  container.innerHTML = subCategories[category]
+    .map(item => `
+      <button class="sub-card" type="button" data-subcategory="${escapeHtml(item.trim())}">
+        <h3>${escapeHtml(item.trim())}</h3>
+      </button>
+    `)
+    .join('');
+
+  container.querySelectorAll('.sub-card').forEach(card => {
+    card.addEventListener('click', () => {
+      container.querySelectorAll('.sub-card').forEach(item => item.classList.remove('active'));
+      card.classList.add('active');
+      activeSubcategory = card.getAttribute('data-subcategory') || '';
+      expandedFlowerId = null;
+      lastCatalogSignature = '';
+      gridWithLoadingState();
+    });
+  });
+}
 
 function flowerImage(product) {
   return product.image && product.image.trim() !== ''
@@ -105,9 +162,10 @@ function renderCatalog(products) {
   }
 
   grid.innerHTML = products.map(product => {
+    const varieties = product.varieties || [];
     const isOpen = product.id === expandedFlowerId;
-    const cheapest = product.varieties.length
-      ? Math.min(...product.varieties.map(v => v.price))
+    const cheapest = varieties.length
+      ? Math.min(...varieties.map(v => v.price))
       : Number(product.price);
 
     return `
@@ -124,7 +182,10 @@ function renderCatalog(products) {
 
         <div class="flower-card-body">
           <h3>${escapeHtml(product.name)}</h3>
-          <p class="meaning">${escapeHtml(product.meaning)}</p>
+          <p class="meaning">${escapeHtml(product.meaning || 'Beautiful Sentiment')}</p>
+          <p class="meaning">
+            <strong>Best for:</strong> ${escapeHtml(product.subcategory || product.tag || 'Special Occasions')}
+          </p>
 
           ${
             product.in_stock
@@ -143,7 +204,7 @@ function renderCatalog(products) {
         </button>
 
         <div class="variety-panel">
-          ${product.varieties.map(v => `
+          ${varieties.map(v => `
             <div class="variety-row ${v.stock <= 0 ? 'disabled' : ''}">
               <span class="variety-swatch" style="background:${escapeHtml(v.color || '#ccc')}"></span>
               <span class="variety-row-name">${escapeHtml(v.name)}</span>
@@ -173,7 +234,16 @@ async function loadProductsRealtime(firstLoad = false) {
   const grid = document.getElementById('catalog-grid');
 
   try {
-    const { data } = await apiFetch('/products.php?action=all');
+    const params = new URLSearchParams({
+      action: 'all',
+      category: activeCategory
+    });
+
+    if (activeSubcategory) {
+      params.set('subcategory', activeSubcategory);
+    }
+
+    const { data } = await apiFetch(`/products.php?${params.toString()}`);
 
     if (firstLoad) {
       loading.style.display = 'none';
@@ -202,7 +272,6 @@ async function loadProductsRealtime(firstLoad = false) {
       lastCatalogProducts = products;
       renderCatalog(products);
     }
-
   } catch (error) {
     console.error(error);
 
@@ -223,8 +292,33 @@ async function loadProductsRealtime(firstLoad = false) {
   }
 }
 
+function gridWithLoadingState() {
+  const grid = document.getElementById('catalog-grid');
+  grid.style.opacity = '0.5';
+
+  loadProductsRealtime(false).then(() => {
+    grid.style.opacity = '1';
+  });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadProductsRealtime(true);
+
+  const tabs = document.querySelectorAll('.category-tabs button');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      tabs.forEach(t => t.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+
+      activeCategory = e.currentTarget.getAttribute('data-category');
+      activeSubcategory = '';
+      expandedFlowerId = null;
+      renderSubCategories(activeCategory);
+
+      lastCatalogSignature = '';
+      gridWithLoadingState();
+    });
+  });
 
   setInterval(() => {
     if (!document.hidden) {
