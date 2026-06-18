@@ -1140,7 +1140,8 @@ footer{
   transition: all 0.25s ease;
 }
 
-.sub-card:hover{
+.sub-card:hover,
+.sub-card.active{
   transform: translateY(-2px);
   border-color: var(--primary);
   background: var(--surface-soft);
@@ -1155,6 +1156,7 @@ footer{
   font-family: 'DM Sans', sans-serif;
 }
 
-.sub-card:hover h3 {
+.sub-card:hover h3,
+.sub-card.active h3 {
   color: var(--primary);
 }

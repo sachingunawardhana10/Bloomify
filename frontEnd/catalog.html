@@ -76,6 +76,7 @@
 let lastCatalogSignature = '';
 let catalogBusy = false;
 let activeCategory = 'All';
+let activeSubcategory = '';
 
 const subCategories = {
   Emotion: [
@@ -91,7 +92,7 @@ const subCategories = {
     "Birthday",
     "Anniversary",
     "Wedding",
-    " Graduation",
+    "Graduation",
     "Mother's Day",
     "Valentine's Day"
   ]
@@ -102,15 +103,26 @@ function renderSubCategories(category) {
 
   if (!subCategories[category]) {
     container.innerHTML = '';
+    activeSubcategory = '';
     return;
   }
   container.innerHTML = subCategories[category]
     .map(item => `
-      <div class="sub-card">
-        <h3>${item}</h3>
-      </div>
+      <button class="sub-card" type="button" data-subcategory="${escapeHtml(item.trim())}">
+        <h3>${escapeHtml(item.trim())}</h3>
+      </button>
     `)
     .join('');
+
+  container.querySelectorAll('.sub-card').forEach(card => {
+    card.addEventListener('click', () => {
+      container.querySelectorAll('.sub-card').forEach(item => item.classList.remove('active'));
+      card.classList.add('active');
+      activeSubcategory = card.getAttribute('data-subcategory') || '';
+      lastCatalogSignature = '';
+      gridWithLoadingState();
+    });
+  });
 }
 
 function flowerImage(product) {
@@ -153,7 +165,7 @@ function renderCatalog(products) {
         
         <p class="meaning" style="display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 13px; color: var(--green); font-weight: 600;">
           <i class="fa-solid fa-gift" style="font-size: 11px;"></i> 
-          <strong>Best for:</strong> ${escapeHtml(product.occasion || 'Special Occasions')}
+          <strong>Best for:</strong> ${escapeHtml(product.subcategory || product.tag || 'Special Occasions')}
         </p>
         ${
           product.in_stock
@@ -180,7 +192,16 @@ async function loadProductsRealtime(firstLoad = false) {
   const grid = document.getElementById('catalog-grid');
 
   try {
-    const url = `/products.php?action=all&category=${encodeURIComponent(activeCategory)}`;
+    const params = new URLSearchParams({
+      action: 'all',
+      category: activeCategory
+    });
+
+    if (activeSubcategory) {
+      params.set('subcategory', activeSubcategory);
+    }
+
+    const url = `/products.php?${params.toString()}`;
     const { data } = await apiFetch(url);
 
     if (firstLoad) {
@@ -226,6 +247,15 @@ async function loadProductsRealtime(firstLoad = false) {
   }
 }
 
+function gridWithLoadingState() {
+  const grid = document.getElementById('catalog-grid');
+  grid.style.opacity = '0.5';
+
+  loadProductsRealtime(false).then(() => {
+    grid.style.opacity = '1';
+  });
+}
+
 // FIXED: Cleaned out the duplicated and broken click handling logic blocks below
 document.addEventListener('DOMContentLoaded', () => {
   loadProductsRealtime(true);
@@ -237,14 +267,11 @@ document.addEventListener('DOMContentLoaded', () => {
       e.target.classList.add('active');
       
       activeCategory = e.target.getAttribute('data-category');
+      activeSubcategory = '';
       renderSubCategories(activeCategory);
       
       lastCatalogSignature = '';
-      document.getElementById('catalog-grid').style.opacity = '0.5';
-      
-      loadProductsRealtime(false).then(() => {
-         document.getElementById('catalog-grid').style.opacity = '1';
-      });
+      gridWithLoadingState();
     });
   });
 

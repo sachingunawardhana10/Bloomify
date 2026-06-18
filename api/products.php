@@ -4,6 +4,7 @@ require_once 'db.php';
 
 $action = $_GET['action'] ?? 'all';
 $category = $_GET['category'] ?? 'All';
+$subcategory = trim($_GET['subcategory'] ?? '');
 
 try {
     if ($action === 'all' || $action === 'list' || $action === '') {
@@ -20,7 +21,35 @@ try {
         $imageSelect = $imageColumnExists
             ? "image"
             : "'images/flowers/default.jpg' AS image";
-       if ($category !== 'All' && !empty($category)) {     
+
+        $subcategoryColumnExists = false;
+        $checkSubcategory = $conn->query("SHOW COLUMNS FROM flowers LIKE 'subcategory'");
+        if ($checkSubcategory && $checkSubcategory->num_rows > 0) {
+            $subcategoryColumnExists = true;
+        }
+
+        $subcategorySelect = $subcategoryColumnExists
+            ? "subcategory"
+            : "NULL AS subcategory";
+
+        $where = [];
+        $types = '';
+        $params = [];
+
+        if ($category !== 'All' && !empty($category)) {
+            $where[] = 'tag = ?';
+            $types .= 's';
+            $params[] = $category;
+        }
+
+        if ($subcategoryColumnExists && $subcategory !== '') {
+            $where[] = 'subcategory = ?';
+            $types .= 's';
+            $params[] = $subcategory;
+        }
+
+        if ($where) {
+            $whereSql = 'WHERE ' . implode(' AND ', $where);
 
         $sql = "
             SELECT 
@@ -31,13 +60,14 @@ try {
                 price,
                 meaning,
                 tag,
+                $subcategorySelect,
                 stock
             FROM flowers
-            WHERE tag = ?
+            $whereSql
             ORDER BY id ASC
         ";
         $stmt = $conn->prepare($sql);
-            $stmt->bind_param("s", $category);
+            $stmt->bind_param($types, ...$params);
             $stmt->execute();
             $result = $stmt->get_result();
         } else {
@@ -51,6 +81,7 @@ try {
                     price,
                     meaning,
                     tag,
+                    $subcategorySelect,
                     stock
                 FROM flowers
                 ORDER BY id ASC
@@ -67,7 +98,8 @@ try {
             $row['stock'] = (int)$row['stock'];
             $row['in_stock'] = $row['stock'] > 0;
 
-            if (empty($row['image'])) {
+            $imagePath = __DIR__ . '/../frontEnd/' . ltrim((string)$row['image'], '/\\');
+            if (empty($row['image']) || !is_file($imagePath)) {
                 $row['image'] = 'images/flowers/default.jpg';
             }
 
