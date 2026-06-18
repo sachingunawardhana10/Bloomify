@@ -8,6 +8,13 @@ $data = request_data();
 if ($action === 'place') {
     $notes = trim($data['notes'] ?? '');
     $paymentMethod = trim($data['payment_method'] ?? 'Cash on Delivery');
+    $codDetails = is_array($data['cod_details'] ?? null) ? $data['cod_details'] : [];
+    $codRecipientName = trim($codDetails['recipient_name'] ?? '');
+    $codPhone = trim($codDetails['phone'] ?? '');
+    $codAddress = trim($codDetails['address'] ?? '');
+    $codCity = trim($codDetails['city'] ?? '');
+    $codDeliveryTime = trim($codDetails['delivery_time'] ?? '');
+    $deliveryAddress = $codAddress;
 
     $allowedPaymentMethods = [
         'Cash on Delivery',
@@ -22,6 +29,23 @@ if ($action === 'place') {
     }
 
     $paymentStatus = $paymentMethod === 'PayHere Online' ? 'Pending' : 'Unpaid';
+
+    if ($paymentMethod === 'Cash on Delivery') {
+        if ($codRecipientName === '' || $codPhone === '' || $codAddress === '' || $codCity === '') {
+            json_response([
+                'success' => false,
+                'message' => 'Recipient name, phone number, delivery address and city are required for Cash on Delivery.'
+            ], 422);
+        }
+
+        $deliveryAddress = $codAddress . "\nCity / area: " . $codCity;
+    } else {
+        $codRecipientName = '';
+        $codPhone = '';
+        $deliveryAddress = '';
+        $codCity = '';
+        $codDeliveryTime = '';
+    }
 
     $stmt = $conn->prepare(
         'SELECT 
@@ -73,19 +97,27 @@ if ($action === 'place') {
                 status,
                 notes,
                 payment_method,
-                payment_status
+                payment_status,
+                recipient_name,
+                recipient_phone,
+                delivery_address,
+                delivery_time
             )
-            VALUES (?, ?, ?, ?, ?, ?)'
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
 
         $order->bind_param(
-            'idssss',
+            'idssssssss',
             $userId,
             $total,
             $status,
             $notes,
             $paymentMethod,
-            $paymentStatus
+            $paymentStatus,
+            $codRecipientName,
+            $codPhone,
+            $deliveryAddress,
+            $codDeliveryTime
         );
 
         $order->execute();
@@ -164,6 +196,11 @@ if ($action === 'mine') {
             payment_method,
             payment_status,
             payment_reference,
+            recipient_name AS cod_recipient_name,
+            recipient_phone AS cod_phone,
+            delivery_address AS cod_address,
+            NULL AS cod_city,
+            delivery_time AS cod_delivery_time,
             created_at
          FROM orders
          WHERE user_id = ?
