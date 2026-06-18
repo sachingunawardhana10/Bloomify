@@ -49,9 +49,29 @@ CREATE TABLE IF NOT EXISTS orders (
     total      DECIMAL(10,2) NOT NULL,
     status     ENUM('pending','processing','delivered','cancelled') DEFAULT 'pending',
     notes      TEXT DEFAULT NULL,
+    recipient_name VARCHAR(120) DEFAULT NULL,
+    recipient_phone VARCHAR(30) DEFAULT NULL,
+    delivery_address TEXT DEFAULT NULL,
+    delivery_date DATE DEFAULT NULL,
+    delivery_time VARCHAR(120) DEFAULT NULL,
+    payment_method VARCHAR(40) NOT NULL DEFAULT 'Cash on Delivery',
+    payment_status VARCHAR(40) NOT NULL DEFAULT 'Unpaid',
+    payment_reference VARCHAR(100) DEFAULT NULL,
+    cod_collected_at TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+ALTER TABLE orders
+    ADD COLUMN IF NOT EXISTS recipient_name VARCHAR(120) DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS recipient_phone VARCHAR(30) DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS delivery_address TEXT DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS delivery_date DATE DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS delivery_time VARCHAR(120) DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS payment_method VARCHAR(40) NOT NULL DEFAULT 'Cash on Delivery',
+    ADD COLUMN IF NOT EXISTS payment_status VARCHAR(40) NOT NULL DEFAULT 'Unpaid',
+    ADD COLUMN IF NOT EXISTS payment_reference VARCHAR(100) DEFAULT NULL,
+    ADD COLUMN IF NOT EXISTS cod_collected_at TIMESTAMP NULL DEFAULT NULL;
 
 -- ─── ORDER ITEMS ──────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS order_items (

@@ -111,7 +111,14 @@ async function loadOrders(silent = false) {
           </select>
         </td>
 
-        <td>${escapeHtml(order.notes || '-')}</td>
+        <td>
+          <strong>${escapeHtml(order.payment_method || '-')}</strong><br>
+          <small>${escapeHtml(order.payment_status || '-')}</small>
+        </td>
+
+        <td>
+          ${renderOrderDetails(order)}
+        </td>
       </tr>
     `).join('');
   } catch (error) {
@@ -122,6 +129,19 @@ async function loadOrders(silent = false) {
         '<tr><td colspan="6" class="empty-row">Failed to load orders.</td></tr>';
     }
   }
+}
+
+function renderOrderDetails(order) {
+  const details = [];
+
+  if (order.cod_recipient_name) details.push(`<strong>${escapeHtml(order.cod_recipient_name)}</strong>`);
+  if (order.cod_phone) details.push(escapeHtml(order.cod_phone));
+  if (order.cod_address) details.push(escapeHtml(order.cod_address));
+  if (order.cod_city) details.push(escapeHtml(order.cod_city));
+  if (order.cod_delivery_time) details.push(`Time: ${escapeHtml(order.cod_delivery_time)}`);
+  if (order.notes) details.push(`Notes: ${escapeHtml(order.notes)}`);
+
+  return details.length ? details.join('<br>') : '-';
 }
 
 async function updateOrder(id, status) {

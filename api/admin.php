@@ -24,7 +24,21 @@ if ($action === 'stats') {
 
 if ($action === 'orders') {
     $result = $conn->query(
-        'SELECT o.id, o.total, o.status, o.notes, o.created_at, u.name, u.email
+        'SELECT 
+            o.id,
+            o.total,
+            o.status,
+            o.notes,
+            o.payment_method,
+            o.payment_status,
+            o.recipient_name AS cod_recipient_name,
+            o.recipient_phone AS cod_phone,
+            o.delivery_address AS cod_address,
+            NULL AS cod_city,
+            o.delivery_time AS cod_delivery_time,
+            o.created_at,
+            u.name,
+            u.email
          FROM orders o
          INNER JOIN users u ON u.id = o.user_id
          ORDER BY o.id DESC'

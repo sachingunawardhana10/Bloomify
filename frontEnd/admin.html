@@ -146,8 +146,32 @@ async function loadOrders() {
         <td>${o.name}</td>
         <td>${o.total}</td>
         <td>${o.status}</td>
+        <td>${o.payment_method || "-"}</td>
+        <td>${renderOrderDetails(o)}</td>
       </tr>
     `).join("");
+}
+
+function renderOrderDetails(order) {
+  const details = [];
+
+  if (order.cod_recipient_name) details.push(`<strong>${escapeHtml(order.cod_recipient_name)}</strong>`);
+  if (order.cod_phone) details.push(escapeHtml(order.cod_phone));
+  if (order.cod_address) details.push(escapeHtml(order.cod_address));
+  if (order.cod_city) details.push(escapeHtml(order.cod_city));
+  if (order.cod_delivery_time) details.push(`Time: ${escapeHtml(order.cod_delivery_time)}`);
+  if (order.notes) details.push(`Notes: ${escapeHtml(order.notes)}`);
+
+  return details.length ? details.join("<br>") : "-";
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 /* ================= PRODUCTS ================= */
