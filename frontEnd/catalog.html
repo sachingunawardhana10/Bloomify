@@ -44,6 +44,15 @@
   <p>Live flower list with real images from your MySQL database</p>
   <div class="ornament"><i class="fa-solid fa-leaf"></i></div>
 </div>
+<div class="category-tabs">
+  <button class="active" data-category="All">All</button>
+  <button data-category="Popular">Popular</button>
+  <button data-category="New">New Arrivals</button>
+  <button data-category="Emotion">Emotions </button>
+  <button data-category="Occasion">Occasions </button>
+</div>
+
+<div id="subCategoryCards" class="sub-category-cards"></div>
 
 <section class="catalog" id="catalog-loading">
   <div class="skel-card"></div>
@@ -66,6 +75,43 @@
 <script>
 let lastCatalogSignature = '';
 let catalogBusy = false;
+let activeCategory = 'All';
+
+const subCategories = {
+  Emotion: [
+    "Love",
+    "Happiness",
+    "Friendship",
+    "Gratitude",
+    "Sympathy",
+    "Apology"
+  ],
+
+  Occasion: [
+    "Birthday",
+    "Anniversary",
+    "Wedding",
+    " Graduation",
+    "Mother's Day",
+    "Valentine's Day"
+  ]
+};
+
+function renderSubCategories(category) {
+  const container = document.getElementById('subCategoryCards');
+
+  if (!subCategories[category]) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = subCategories[category]
+    .map(item => `
+      <div class="sub-card">
+        <h3>${item}</h3>
+      </div>
+    `)
+    .join('');
+}
 
 function flowerImage(product) {
   return product.image && product.image.trim() !== ''
@@ -95,13 +141,20 @@ function renderCatalog(products) {
           alt="${escapeHtml(product.name)}"
           onerror="this.src='images/flowers/default.jpg';"
         >
-
         ${product.tag ? `<span class="flower-tag">${escapeHtml(product.tag)}</span>` : ''}
       </div>
 
       <div class="flower-card-body">
         <h3>${escapeHtml(product.name)}</h3>
-        <p class="meaning">${escapeHtml(product.meaning)}</p>
+        <p class="meaning" style="display: flex; align-items: center; gap: 6px; font-size: 13px;">
+          <i class="fa-solid fa-heart" style="color: var(--primary); font-size: 11px;"></i> 
+          <strong>Vibe:</strong> ${escapeHtml(product.meaning || 'Beautiful Sentiment')}
+        </p>
+        
+        <p class="meaning" style="display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 13px; color: var(--green); font-weight: 600;">
+          <i class="fa-solid fa-gift" style="font-size: 11px;"></i> 
+          <strong>Best for:</strong> ${escapeHtml(product.occasion || 'Special Occasions')}
+        </p>
         ${
           product.in_stock
             ? `<span class="stock-badge">${product.stock} in stock</span>`
@@ -111,7 +164,6 @@ function renderCatalog(products) {
 
       <div class="flower-card-footer">
         <span class="price">${money(product.price)}</span>
-
         <button class="btn-add" onclick="addToCart(this, ${product.id}, 1)" ${!product.in_stock ? 'disabled' : ''}>
           <i class="fa-solid fa-plus"></i> Add
         </button>
@@ -122,21 +174,21 @@ function renderCatalog(products) {
 
 async function loadProductsRealtime(firstLoad = false) {
   if (catalogBusy) return;
-
   catalogBusy = true;
 
   const loading = document.getElementById('catalog-loading');
   const grid = document.getElementById('catalog-grid');
 
   try {
-    const { data } = await apiFetch('/products.php?action=all');
+    const url = `/products.php?action=all&category=${encodeURIComponent(activeCategory)}`;
+    const { data } = await apiFetch(url);
 
     if (firstLoad) {
       loading.style.display = 'none';
       grid.style.display = 'grid';
     }
 
-    if (!data.success) {
+    if (!data || !data.success) {
       if (firstLoad) {
         grid.innerHTML = `
           <div class="empty-cart" style="grid-column:1/-1;">
@@ -146,7 +198,6 @@ async function loadProductsRealtime(firstLoad = false) {
           </div>
         `;
       }
-
       return;
     }
 
@@ -159,11 +210,9 @@ async function loadProductsRealtime(firstLoad = false) {
     }
   } catch (error) {
     console.error(error);
-
     if (firstLoad) {
       loading.style.display = 'none';
       grid.style.display = 'grid';
-
       grid.innerHTML = `
         <div class="empty-cart" style="grid-column:1/-1;">
           <div class="empty-icon">⚠️</div>
@@ -177,8 +226,27 @@ async function loadProductsRealtime(firstLoad = false) {
   }
 }
 
+// FIXED: Cleaned out the duplicated and broken click handling logic blocks below
 document.addEventListener('DOMContentLoaded', () => {
   loadProductsRealtime(true);
+
+  const tabs = document.querySelectorAll('.category-tabs button');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      tabs.forEach(t => t.classList.remove('active'));
+      e.target.classList.add('active');
+      
+      activeCategory = e.target.getAttribute('data-category');
+      renderSubCategories(activeCategory);
+      
+      lastCatalogSignature = '';
+      document.getElementById('catalog-grid').style.opacity = '0.5';
+      
+      loadProductsRealtime(false).then(() => {
+         document.getElementById('catalog-grid').style.opacity = '1';
+      });
+    });
+  });
 
   setInterval(() => {
     if (!document.hidden) {

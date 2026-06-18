@@ -1,7 +1,9 @@
 <?php
 require_once 'db.php';
 
+
 $action = $_GET['action'] ?? 'all';
+$category = $_GET['category'] ?? 'All';
 
 try {
     if ($action === 'all' || $action === 'list' || $action === '') {
@@ -9,7 +11,7 @@ try {
         // Check whether image column exists.
         // This prevents 500 error if your database is not updated yet.
         $imageColumnExists = false;
-
+        
         $checkImage = $conn->query("SHOW COLUMNS FROM flowers LIKE 'image'");
         if ($checkImage && $checkImage->num_rows > 0) {
             $imageColumnExists = true;
@@ -18,6 +20,7 @@ try {
         $imageSelect = $imageColumnExists
             ? "image"
             : "'images/flowers/default.jpg' AS image";
+       if ($category !== 'All' && !empty($category)) {     
 
         $sql = "
             SELECT 
@@ -30,12 +33,33 @@ try {
                 tag,
                 stock
             FROM flowers
+            WHERE tag = ?
             ORDER BY id ASC
         ";
-
-        $result = $conn->query($sql);
+        $stmt = $conn->prepare($sql);
+            $stmt->bind_param("s", $category);
+            $stmt->execute();
+            $result = $stmt->get_result();
+        } else {
+            
+            $sql = "
+                SELECT 
+                    id, 
+                    name,
+                    emoji,
+                    $imageSelect, 
+                    price,
+                    meaning,
+                    tag,
+                    stock
+                FROM flowers
+                ORDER BY id ASC
+            ";
+            $result = $conn->query($sql);
+        }
 
         $products = [];
+        if ($result) {
 
         while ($row = $result->fetch_assoc()) {
             $row['id'] = (int)$row['id'];
@@ -50,6 +74,12 @@ try {
             $products[] = $row;
         }
 
+        }
+        if (isset($stmt)) {
+            $stmt->close();
+        }
+        
+
         json_response([
             'success' => true,
             'products' => $products
@@ -60,6 +90,7 @@ try {
         'success' => false,
         'message' => 'Unknown products action.'
     ], 404);
+    
 
 } catch (Throwable $e) {
     json_response([
@@ -67,5 +98,6 @@ try {
         'message' => 'Products API failed.',
         'error' => $e->getMessage()
     ], 500);
+    
 }
 ?>
