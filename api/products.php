@@ -1,57 +1,96 @@
 <?php
 require_once 'db.php';
 
-$action = $_GET['action'] ?? 'all';
+$action = $_GET['action'] ?? 'flowers';
 
 try {
-    if ($action === 'all' || $action === 'list' || $action === '') {
+
+    // 'flowers' (used by app.js's hero teaser) and 'all' (used by catalog.html /
+    // customize.html) return the same shape, just under a different key —
+    // they were inconsistent before (only 'flowers' existed), this fixes that.
+    if ($action === 'flowers' || $action === 'all') {
+
         $sql = "
-            SELECT 
-                id, 
-                name, 
-                emoji, 
-                image, 
-                price, 
-                meaning, 
-                tag, 
-                stock
-            FROM flowers
-            ORDER BY id ASC
+            SELECT
+                f.id,
+                f.name,
+                f.emoji,
+                f.image,
+                f.meaning,
+                f.tag,
+                v.id    AS variety_id,
+                v.variety_name,
+                v.color_hex,
+                v.price AS variety_price,
+                v.stock AS variety_stock
+            FROM flowers f
+            LEFT JOIN flower_varieties v ON v.flower_id = f.id
+            ORDER BY f.id ASC, v.price ASC
         ";
 
         $result = $conn->query($sql);
 
-        $products = [];
+        $flowers = [];
 
         while ($row = $result->fetch_assoc()) {
-            $row['id'] = (int)$row['id'];
-            $row['price'] = (float)$row['price'];
-            $row['stock'] = (int)$row['stock'];
-            $row['in_stock'] = $row['stock'] > 0;
+            $id = (int)$row['id'];
 
-            if (empty($row['image'])) {
-                $row['image'] = 'images/flowers/default.jpg';
+            if (!isset($flowers[$id])) {
+                $flowers[$id] = [
+                    'id'        => $id,
+                    'name'      => $row['name'],
+                    'emoji'     => $row['emoji'],
+                    'image'     => $row['image'] ?: 'images/flowers/default.jpg',
+                    'meaning'   => $row['meaning'],
+                    'tag'       => $row['tag'],
+                    'varieties' => []
+                ];
             }
 
-            $products[] = $row;
+            if ($row['variety_id'] !== null) {
+                $flowers[$id]['varieties'][] = [
+                    'id'    => (int)$row['variety_id'],
+                    'name'  => $row['variety_name'],
+                    'color' => $row['color_hex'],
+                    'price' => (float)$row['variety_price'],
+                    'stock' => (int)$row['variety_stock']
+                ];
+            }
         }
 
+        $flowers = array_values($flowers);
+
+        // Keep top-level price/stock as aggregates so any code still reading
+        // flower.price / flower.stock directly (e.g. the simple hero teaser
+        // in app.js) keeps working without changes.
+        foreach ($flowers as &$flower) {
+            $prices = array_column($flower['varieties'], 'price');
+            $stocks = array_column($flower['varieties'], 'stock');
+
+            $flower['price']    = $prices ? min($prices) : 0;
+            $flower['stock']    = $stocks ? array_sum($stocks) : 0;
+            $flower['in_stock'] = $flower['stock'] > 0;
+        }
+        unset($flower);
+
+        $responseKey = $action === 'all' ? 'products' : 'data';
+
         json_response([
-            'success' => true,
-            'products' => $products
+            'success'    => true,
+            $responseKey => $flowers
         ]);
     }
 
     json_response([
         'success' => false,
-        'message' => 'Unknown products action.'
-    ], 404);
+        'message' => 'Invalid action'
+    ], 400);
 
 } catch (Throwable $e) {
+
     json_response([
         'success' => false,
-        'message' => 'Products API failed.',
+        'message' => 'Products API failed',
         'error' => $e->getMessage()
     ], 500);
 }
-?>

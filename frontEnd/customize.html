@@ -94,16 +94,24 @@
 <script src="js/app.js"></script>
 
 <script>
+// bouquet is now keyed by VARIETY id, not flower id — two colors of the
+// same flower are two different cart lines with their own price/stock.
 const bouquet = new Map();
 const flowersById = new Map();
 
 let lastCustomizeSignature = '';
 let customizeBusy = false;
+let expandedFlowerId = null; // which flower card is currently expanded
 
 function flowerImage(product) {
   return product.image && product.image.trim() !== ''
     ? product.image
     : 'images/flowers/default.jpg';
+}
+
+function toggleFlowerExpand(flowerId) {
+  expandedFlowerId = expandedFlowerId === flowerId ? null : flowerId;
+  renderFlowerOptions(Array.from(flowersById.values()));
 }
 
 function renderFlowerOptions(products) {
@@ -119,37 +127,69 @@ function renderFlowerOptions(products) {
     return;
   }
 
-  options.innerHTML = availableFlowers.map(product => `
-    <button class="flower-opt-btn" onclick="addFlowerById(${product.id})">
-      <img 
-        class="f-thumb" 
-        src="${escapeHtml(flowerImage(product))}" 
-        alt="${escapeHtml(product.name)}"
-        onerror="this.src='images/flowers/default.jpg';"
-      >
+  options.innerHTML = availableFlowers.map(product => {
+    const isOpen = product.id === expandedFlowerId;
+    const cheapest = Math.min(...product.varieties.map(v => v.price));
 
-      <span class="f-info">
-        <span class="f-name">${escapeHtml(product.name)}</span>
-        <span class="f-price">${money(product.price)} • ${product.stock} left</span>
-      </span>
-    </button>
-  `).join('');
+    return `
+      <div class="flower-opt-card ${isOpen ? 'open' : ''}">
+        <button class="flower-opt-btn" type="button" onclick="toggleFlowerExpand(${product.id})">
+          <img 
+            class="f-thumb" 
+            src="${escapeHtml(flowerImage(product))}" 
+            alt="${escapeHtml(product.name)}"
+            onerror="this.src='images/flowers/default.jpg';"
+          >
+
+          <span class="f-info">
+            <span class="f-name">${escapeHtml(product.name)}</span>
+            <span class="f-price">from ${money(cheapest)} • ${product.stock} left</span>
+          </span>
+
+          <i class="fa-solid fa-chevron-down f-chevron"></i>
+        </button>
+
+        <div class="variety-panel">
+          ${product.varieties.map(v => `
+            <button 
+              type="button" 
+              class="variety-row ${v.stock <= 0 ? 'disabled' : ''}" 
+              onclick="addVariety(${product.id}, ${v.id})"
+              ${v.stock <= 0 ? 'disabled' : ''}
+            >
+              <span class="variety-swatch" style="background:${escapeHtml(v.color || '#ccc')}"></span>
+              <span class="variety-row-name">${escapeHtml(v.name)}</span>
+              <span class="variety-row-stock">${v.stock} left</span>
+              <span class="variety-row-price">${money(v.price)}</span>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function syncBouquetWithLatestProducts(products) {
-  const latestMap = new Map();
+  const latestVarietyMap = new Map();
 
   products.forEach(product => {
-    latestMap.set(product.id, product);
+    product.varieties.forEach(v => {
+      latestVarietyMap.set(v.id, {
+        ...v,
+        flowerId: product.id,
+        flowerName: product.name,
+        image: product.image
+      });
+    });
   });
 
   let changed = false;
 
-  for (const [id, item] of bouquet.entries()) {
-    const latest = latestMap.get(id);
+  for (const [varietyId, item] of bouquet.entries()) {
+    const latest = latestVarietyMap.get(varietyId);
 
-    if (!latest || !latest.in_stock || latest.stock <= 0) {
-      bouquet.delete(id);
+    if (!latest || latest.stock <= 0) {
+      bouquet.delete(varietyId);
       changed = true;
       continue;
     }
@@ -159,15 +199,14 @@ function syncBouquetWithLatestProducts(products) {
       changed = true;
     }
 
-    item.name = latest.name;
-    item.emoji = latest.emoji;
-    item.image = latest.image;
     item.price = Number(latest.price);
     item.stock = Number(latest.stock);
-    item.meaning = latest.meaning;
-    item.tag = latest.tag;
+    item.flowerName = latest.flowerName;
+    item.varietyName = latest.name;
+    item.color = latest.color;
+    item.image = latest.image;
 
-    bouquet.set(id, item);
+    bouquet.set(varietyId, item);
   }
 
   if (changed) {
@@ -228,38 +267,51 @@ async function loadFlowersRealtime(firstLoad = false) {
   }
 }
 
-function addFlowerById(id) {
-  const product = flowersById.get(id);
+function addVariety(flowerId, varietyId) {
+  const product = flowersById.get(flowerId);
 
   if (!product) {
     showToast('This flower is not available anymore.', 'error');
     return;
   }
 
-  addFlower(product);
-}
+  const variety = product.varieties.find(v => v.id === varietyId);
 
-function addFlower(product) {
-  if (!product.in_stock || product.stock <= 0) {
-    showToast(`${product.name} is out of stock.`, 'error');
+  if (!variety) {
+    showToast('This variety is not available anymore.', 'error');
     return;
   }
 
-  const current = bouquet.get(product.id) || { ...product, quantity: 0 };
+  if (variety.stock <= 0) {
+    showToast(`${product.name} (${variety.name}) is out of stock.`, 'error');
+    return;
+  }
 
-  if (current.quantity >= product.stock) {
-    showToast(`${product.name} has only ${product.stock} in stock.`, 'error');
+  const current = bouquet.get(varietyId) || {
+    varietyId,
+    flowerId,
+    flowerName: product.name,
+    varietyName: variety.name,
+    color: variety.color,
+    image: product.image,
+    price: Number(variety.price),
+    stock: Number(variety.stock),
+    quantity: 0
+  };
+
+  if (current.quantity >= variety.stock) {
+    showToast(`${product.name} (${variety.name}) has only ${variety.stock} in stock.`, 'error');
     return;
   }
 
   current.quantity += 1;
-  bouquet.set(product.id, current);
+  bouquet.set(varietyId, current);
 
   renderBouquet();
 }
 
-function changeBouquetQty(id, amount) {
-  const item = bouquet.get(id);
+function changeBouquetQty(varietyId, amount) {
+  const item = bouquet.get(varietyId);
 
   if (!item) {
     return;
@@ -268,12 +320,12 @@ function changeBouquetQty(id, amount) {
   item.quantity += amount;
 
   if (item.quantity <= 0) {
-    bouquet.delete(id);
+    bouquet.delete(varietyId);
   } else if (item.quantity > item.stock) {
     item.quantity = item.stock;
-    showToast(`${item.name} has only ${item.stock} in stock.`, 'error');
+    showToast(`${item.flowerName} (${item.varietyName}) has only ${item.stock} in stock.`, 'error');
   } else {
-    bouquet.set(id, item);
+    bouquet.set(varietyId, item);
   }
 
   renderBouquet();
@@ -309,21 +361,21 @@ function renderBouquet() {
         <div class="bouquet-item-main">
           <img 
             class="bouquet-thumb" 
-            src="${escapeHtml(flowerImage(item))}" 
-            alt="${escapeHtml(item.name)}"
+            src="${escapeHtml(item.image || 'images/flowers/default.jpg')}" 
+            alt="${escapeHtml(item.flowerName)}"
             onerror="this.src='images/flowers/default.jpg';"
           >
 
           <div>
-            <strong>${escapeHtml(item.name)}</strong><br>
+            <strong>${escapeHtml(item.flowerName)} — ${escapeHtml(item.varietyName)}</strong><br>
             <small>${money(item.price)} each • ${item.stock} left</small>
           </div>
         </div>
 
         <div class="qty-actions">
-          <button onclick="changeBouquetQty(${item.id}, -1)">−</button>
+          <button onclick="changeBouquetQty(${item.varietyId}, -1)">−</button>
           <strong>${item.quantity}</strong>
-          <button onclick="changeBouquetQty(${item.id}, 1)">+</button>
+          <button onclick="changeBouquetQty(${item.varietyId}, 1)">+</button>
         </div>
       </div>
     `;
@@ -349,7 +401,7 @@ async function addBouquetToCart() {
 
   try {
     for (const item of bouquet.values()) {
-      const ok = await addToCart(null, item.id, item.quantity);
+      const ok = await addToCart(null, item.flowerId, item.varietyId, item.quantity);
 
       if (!ok) {
         throw new Error('Could not add all bouquet items.');
