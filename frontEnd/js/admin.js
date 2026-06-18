@@ -6,6 +6,7 @@ let lastStatsSignature = '';
 let lastOrdersSignature = '';
 let lastProductsSignature = '';
 let lastUsersSignature = '';
+let lastMessagesSignature = '';
 
 async function requireAdmin() {
   const session = await checkSession();
@@ -367,6 +368,114 @@ async function loadUsers(silent = false) {
   }
 }
 
+function messageStatusLabel(status) {
+  return String(status || 'new').charAt(0).toUpperCase() + String(status || 'new').slice(1);
+}
+
+async function loadMessages(silent = false) {
+  try {
+    const { data } = await apiFetch('/contact.php?action=list');
+    const grid = document.getElementById('messages-grid');
+
+    if (!data.success) {
+      if (!silent) {
+        grid.innerHTML = `<div class="empty-row">${escapeHtml(data.message || 'Could not load messages.')}</div>`;
+      }
+      return;
+    }
+
+    const messages = data.messages || [];
+    const signature = JSON.stringify(messages);
+
+    if (signature === lastMessagesSignature && silent) {
+      return;
+    }
+
+    lastMessagesSignature = signature;
+    document.getElementById('stat-messages').textContent = messages.length;
+    document.getElementById('messages-tab-count').textContent = messages.length;
+
+    if (!messages.length) {
+      grid.innerHTML = '<div class="empty-row">No contact messages yet.</div>';
+      return;
+    }
+
+    grid.innerHTML = messages.map(message => `
+      <article class="message-card ${escapeHtml(message.status)}">
+        <div class="message-card-top">
+          <div>
+            <span class="message-status ${escapeHtml(message.status)}">${escapeHtml(messageStatusLabel(message.status))}</span>
+            <h3>${escapeHtml(message.subject)}</h3>
+          </div>
+          <small>#${message.id}</small>
+        </div>
+
+        <div class="message-meta">
+          <span><i class="fa-solid fa-user"></i> ${escapeHtml(message.name)}</span>
+          <span><i class="fa-solid fa-envelope"></i> ${escapeHtml(message.email)}</span>
+          <span><i class="fa-solid fa-clock"></i> ${escapeHtml(message.created_at)}</span>
+        </div>
+
+        <p class="message-preview">${escapeHtml(message.message)}</p>
+
+        <div class="message-actions">
+          <a class="small-btn" href="mailto:${encodeURIComponent(message.email)}?subject=Re:%20${encodeURIComponent(message.subject)}">
+            Reply
+          </a>
+          <button class="small-btn" onclick="updateMessageStatus(${message.id}, 'read')" ${message.status === 'read' ? 'disabled' : ''}>
+            Mark Read
+          </button>
+          <button class="small-btn" onclick="updateMessageStatus(${message.id}, 'archived')" ${message.status === 'archived' ? 'disabled' : ''}>
+            Archive
+          </button>
+          <button class="small-btn danger" onclick="deleteMessage(${message.id})">
+            Delete
+          </button>
+        </div>
+      </article>
+    `).join('');
+  } catch (error) {
+    console.error(error);
+
+    if (!silent) {
+      document.getElementById('messages-grid').innerHTML =
+        '<div class="empty-row">Failed to load messages.</div>';
+    }
+  }
+}
+
+async function updateMessageStatus(id, status) {
+  const { data } = await apiFetch('/contact.php?action=update-status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, status })
+  });
+
+  showToast(data.message || 'Message updated.', data.success ? 'success' : 'error');
+
+  if (data.success) {
+    await loadMessages(false);
+  }
+}
+
+async function deleteMessage(id) {
+  if (!confirm('Delete this message?')) {
+    return;
+  }
+
+  const { data } = await apiFetch('/contact.php?action=delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id })
+  });
+
+  showToast(data.message || 'Message deleted.', data.success ? 'success' : 'error');
+
+  if (data.success) {
+    await loadMessages(false);
+  }
+}
+
 async function runAdminRealtime() {
   if (adminRealtimeBusy) return;
   if (document.hidden) return;
@@ -374,10 +483,11 @@ async function runAdminRealtime() {
   adminRealtimeBusy = true;
 
   try {
-    await Promise.all([
+    await Promise.allSettled([
       loadStats(true),
       loadOrders(true),
       loadProducts(true),
+      loadMessages(true),
       loadUsers(true)
     ]);
   } catch (error) {
@@ -396,10 +506,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('product-form').addEventListener('submit', saveProduct);
 
-  await Promise.all([
+  await Promise.allSettled([
     loadStats(false),
     loadOrders(false),
     loadProducts(false),
+    loadMessages(false),
     loadUsers(false)
   ]);
 

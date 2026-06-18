@@ -18,6 +18,8 @@
       <li><a href="index.html">Home</a></li>
       <li><a href="catalog.html">Flowers</a></li>
       <li><a href="customize.html">Customize</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="contact.html">Contact</a></li>
       <li id="nav-admin-link" style="display:none;"><a href="admin.html">Admin</a></li>
       <li id="nav-login-link"><a href="login.html">Login</a></li>
     </ul>
@@ -164,6 +166,10 @@
   <a href="index.html" class="logo footer-logo-link">
     <img src="images/bloomify_logo.png" alt="Bloomify logo">
   </a>
+  <p>
+    <a href="about.html">About Us</a> &nbsp;|&nbsp;
+    <a href="contact.html">Contact Us</a>
+  </p>
   <p>© 2026 Bloomify. All rights reserved.</p>
 </footer>
 
@@ -242,7 +248,9 @@ function renderCart(data) {
 
           <div>
             <strong>${escapeHtml(item.name)}</strong><br>
-            <small>${item.stock} in stock</small>
+            <small>
+              ${escapeHtml(item.variety_name)} • ${item.stock} in stock
+            </small>
           </div>
         </div>
       </td>
@@ -251,13 +259,15 @@ function renderCart(data) {
 
       <td>
         <div class="qty-ctrl">
-          <button class="qty-btn" onclick="changeQty(${item.flower_id}, ${item.quantity - 1})">
+          <button class="qty-btn"
+            onclick="changeQty(${item.flower_id}, ${item.variety_id}, ${item.quantity - 1})">
             <i class="fa-solid fa-minus"></i>
           </button>
 
           <strong>${item.quantity}</strong>
 
-          <button class="qty-btn" onclick="changeQty(${item.flower_id}, ${item.quantity + 1})">
+          <button class="qty-btn"
+            onclick="changeQty(${item.flower_id}, ${item.variety_id}, ${item.quantity + 1})">
             <i class="fa-solid fa-plus"></i>
           </button>
         </div>
@@ -266,7 +276,8 @@ function renderCart(data) {
       <td>${money(item.subtotal)}</td>
 
       <td>
-        <button class="remove-item-btn" onclick="removeItem(${item.flower_id})">
+        <button class="remove-item-btn"
+          onclick="removeItem(${item.flower_id}, ${item.variety_id})">
           <i class="fa-solid fa-trash"></i>
         </button>
       </td>
@@ -279,11 +290,17 @@ function renderCart(data) {
   updateCartCount(data.count);
 }
 
-async function changeQty(flowerId, quantity) {
+async function changeQty(flowerId, varietyId, quantity) {
   const { data } = await apiFetch('/cart.php?action=update', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ flower_id: flowerId, quantity })
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      flower_id: flowerId,
+      variety_id: varietyId,
+      quantity: quantity
+    })
   });
 
   if (data.success) {
@@ -298,11 +315,16 @@ async function changeQty(flowerId, quantity) {
   }
 }
 
-async function removeItem(flowerId) {
+async function removeItem(flowerId, varietyId) {
   const { data } = await apiFetch('/cart.php?action=remove', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ flower_id: flowerId })
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      flower_id: flowerId,
+      variety_id: varietyId
+    })
   });
 
   if (data.success) {

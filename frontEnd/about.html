@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Us - Bloomify</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .about-story {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      align-items: center;
+      padding: 0 7% 72px;
+    }
+
+    .about-copy {
+      background: rgba(255,255,255,.88);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-soft);
+      padding: 30px;
+    }
+
+    .about-copy h2 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 40px;
+      margin-bottom: 14px;
+    }
+
+    .about-copy p {
+      color: var(--muted);
+      line-height: 1.8;
+      margin-bottom: 14px;
+    }
+
+    .about-image {
+      border-radius: 34px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      min-height: 440px;
+    }
+
+    .about-image img {
+      width: 100%;
+      height: 100%;
+      min-height: 440px;
+      object-fit: cover;
+    }
+
+    .about-values-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      padding: 0 7% 72px;
+    }
+
+    .value-card {
+      background: rgba(255,255,255,.88);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-soft);
+      padding: 26px;
+    }
+
+    .value-card i {
+      color: var(--primary);
+      font-size: 28px;
+      margin-bottom: 16px;
+    }
+
+    .value-card h3 {
+      margin-bottom: 8px;
+    }
+
+    .value-card p {
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    @media(max-width:900px) {
+      .about-story,
+      .about-values-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+<header class="navbar">
+  <a href="index.html" class="brand-logo" aria-label="Bloomify home">
+    <img src="images/bloomify_logo.png" alt="Bloomify logo">
+  </a>
+
+  <nav>
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="catalog.html">Flowers</a></li>
+      <li><a href="customize.html">Customize</a></li>
+      <li><a href="about.html" class="active">About</a></li>
+      <li><a href="contact.html">Contact</a></li>
+      <li id="nav-admin-link" style="display:none;"><a href="admin.html">Admin</a></li>
+      <li id="nav-login-link"><a href="login.html">Login</a></li>
+    </ul>
+  </nav>
+
+  <div class="nav-right">
+    <div class="nav-user" id="nav-user-info">
+      <span>
+        <i class="fa-solid fa-circle" style="color:#9fe39f;font-size:8px;"></i>
+        <span id="nav-user-name"></span>
+      </span>
+      <button class="logout-btn" onclick="handleLogout()">Logout</button>
+    </div>
+    <a href="cart.html" class="nav-cart-btn">
+      <i class="fa-solid fa-basket-shopping"></i>
+      <span id="cart-count" style="display:none;">0</span>
+    </a>
+  </div>
+</header>
+
+<div class="page-header">
+  <h1>About Bloomify</h1>
+  <p>Thoughtful flowers for birthdays, milestones, apologies, celebrations, and everyday joy.</p>
+  <div class="ornament"><i class="fa-solid fa-heart"></i></div>
+</div>
+
+<section class="about-story">
+  <div class="about-copy fade-up">
+    <h2>Flowers with feeling</h2>
+    <p>Bloomify is built around the idea that a bouquet should feel personal. We help customers choose flowers by meaning, color, freshness, and occasion, then turn those choices into arrangements that feel intentional.</p>
+    <p>From ready-to-order flowers to fully customized bouquets, every part of the experience is designed to make gifting simpler, warmer, and more memorable.</p>
+    <a href="customize.html" class="btn-primary">
+      <i class="fa-solid fa-wand-magic-sparkles"></i> Build a Bouquet
+    </a>
+  </div>
+
+  <div class="about-image fade-up">
+    <img src="images/heroImage.jpg" alt="Fresh Bloomify bouquet arrangement">
+  </div>
+</section>
+
+<section class="about-values-grid">
+  <article class="value-card">
+    <i class="fa-solid fa-seedling"></i>
+    <h3>Fresh Selection</h3>
+    <p>We focus on flowers that look beautiful, photograph well, and arrive ready for meaningful moments.</p>
+  </article>
+
+  <article class="value-card">
+    <i class="fa-solid fa-palette"></i>
+    <h3>Personal Style</h3>
+    <p>Customers can mix varieties, colors, and quantities to create bouquets that match the person receiving them.</p>
+  </article>
+
+  <article class="value-card">
+    <i class="fa-solid fa-gift"></i>
+    <h3>Occasion Ready</h3>
+    <p>Whether it is romance, gratitude, sympathy, or celebration, Bloomify makes the right choice easier.</p>
+  </article>
+</section>
+
+<footer>
+  <a href="index.html" class="logo footer-logo-link">
+    <img src="images/bloomify_logo.png" alt="Bloomify logo">
+  </a>
+  <p>
+    <a href="about.html">About Us</a> &nbsp;|&nbsp;
+    <a href="contact.html">Contact Us</a>
+  </p>
+  <p>&copy; 2026 Bloomify. All rights reserved.</p>
+</footer>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

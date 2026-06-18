@@ -56,7 +56,7 @@ body{
 
 .stats-grid{
   display:grid;
-  grid-template-columns:repeat(4,1fr);
+  grid-template-columns:repeat(5,1fr);
   gap:18px;
   padding:0 7% 30px;
 }
@@ -124,6 +124,25 @@ body{
   color:#fff;
   border-color:transparent;
   box-shadow:0 14px 28px rgba(184,71,107,.26);
+}
+
+.tab-count{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:22px;
+  height:22px;
+  margin-left:6px;
+  padding:0 7px;
+  border-radius:999px;
+  background:#fff1f5;
+  color:var(--primary);
+  font-size:12px;
+}
+
+.tab-btn.active .tab-count{
+  background:#fff;
+  color:var(--primary);
 }
 
 .tab-content{
@@ -250,6 +269,15 @@ body{
   font-weight:900;
   cursor:pointer;
   margin-right:6px;
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.small-btn:disabled{
+  opacity:.45;
+  cursor:not-allowed;
 }
 
 .small-btn.danger{
@@ -272,6 +300,94 @@ body{
   font-family:'DM Sans',sans-serif;
   font-size:12px;
   font-weight:900;
+}
+
+.messages-header-card{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.messages-header-card p{
+  color:var(--muted);
+}
+
+.messages-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:16px;
+}
+
+.message-card{
+  background:#fff;
+  border:1px solid var(--border);
+  border-left:5px solid var(--primary);
+  border-radius:22px;
+  box-shadow:var(--shadow-soft);
+  padding:18px;
+}
+
+.message-card.read{
+  border-left-color:var(--green);
+}
+
+.message-card.archived{
+  opacity:.72;
+  border-left-color:var(--muted);
+}
+
+.message-card-top{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+
+.message-card-top h3{
+  font-size:20px;
+  margin-top:8px;
+}
+
+.message-status{
+  display:inline-flex;
+  border-radius:999px;
+  background:#fff1f5;
+  color:var(--primary);
+  padding:5px 10px;
+  font-size:12px;
+  font-weight:900;
+}
+
+.message-status.read{
+  background:#e9f7e7;
+  color:#2c6d31;
+}
+
+.message-status.archived{
+  background:#f0ebe8;
+  color:var(--muted);
+}
+
+.message-meta{
+  display:grid;
+  gap:7px;
+  color:var(--muted);
+  font-size:13px;
+  margin-bottom:12px;
+}
+
+.message-preview{
+  color:var(--text);
+  line-height:1.7;
+  white-space:pre-wrap;
+  margin-bottom:16px;
+}
+
+.message-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
 }
 
 @media(max-width:1180px){

@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
 <header class="navbar">
   <a href="index.html" class="brand-logo" aria-label="Bloomify home">
     <img src="images/bloomify_logo.png" alt="Bloomify logo">
@@ -18,6 +19,8 @@
       <li><a href="index.html">Home</a></li>
       <li><a href="catalog.html" class="active">Flowers</a></li>
       <li><a href="customize.html">Customize</a></li>
+      <li><a href="about.html">About</a></li>
+      <li><a href="contact.html">Contact</a></li>
       <li id="nav-admin-link" style="display:none;"><a href="admin.html">Admin</a></li>
       <li id="nav-login-link"><a href="login.html">Login</a></li>
     </ul>
@@ -45,18 +48,25 @@
   <div class="ornament"><i class="fa-solid fa-leaf"></i></div>
 </div>
 
+
+<!-- Existing skeleton loader -->
 <section class="catalog" id="catalog-loading">
   <div class="skel-card"></div>
   <div class="skel-card"></div>
   <div class="skel-card"></div>
 </section>
 
+<!-- Existing grid (your current system) -->
 <section class="catalog" id="catalog-grid" style="display:none;"></section>
 
 <footer>
   <a href="index.html" class="logo footer-logo-link">
     <img src="images/bloomify_logo.png" alt="Bloomify logo">
   </a>
+  <p>
+    <a href="about.html">About Us</a> &nbsp;|&nbsp;
+    <a href="contact.html">Contact Us</a>
+  </p>
   <p>© 2026 Bloomify. All rights reserved.</p>
 </footer>
 
@@ -66,11 +76,18 @@
 <script>
 let lastCatalogSignature = '';
 let catalogBusy = false;
+let lastCatalogProducts = [];
+let expandedFlowerId = null; // which card's varieties are currently shown
 
 function flowerImage(product) {
   return product.image && product.image.trim() !== ''
     ? product.image
     : 'images/flowers/default.jpg';
+}
+
+function toggleCatalogExpand(flowerId) {
+  expandedFlowerId = expandedFlowerId === flowerId ? null : flowerId;
+  renderCatalog(lastCatalogProducts);
 }
 
 function renderCatalog(products) {
@@ -87,37 +104,64 @@ function renderCatalog(products) {
     return;
   }
 
-  grid.innerHTML = products.map(product => `
-    <article class="flower-card ${!product.in_stock ? 'out-of-stock' : ''}">
-      <div class="flower-card-img real-flower-img">
-        <img 
-          src="${escapeHtml(flowerImage(product))}" 
-          alt="${escapeHtml(product.name)}"
-          onerror="this.src='images/flowers/default.jpg';"
+  grid.innerHTML = products.map(product => {
+    const isOpen = product.id === expandedFlowerId;
+    const cheapest = product.varieties.length
+      ? Math.min(...product.varieties.map(v => v.price))
+      : Number(product.price);
+
+    return `
+      <article class="flower-card ${!product.in_stock ? 'out-of-stock' : ''} ${isOpen ? 'open' : ''}">
+        <div class="flower-card-img real-flower-img">
+          <img 
+            src="${escapeHtml(flowerImage(product))}" 
+            alt="${escapeHtml(product.name)}"
+            onerror="this.src='images/flowers/default.jpg';"
+          >
+
+          ${product.tag ? `<span class="flower-tag">${escapeHtml(product.tag)}</span>` : ''}
+        </div>
+
+        <div class="flower-card-body">
+          <h3>${escapeHtml(product.name)}</h3>
+          <p class="meaning">${escapeHtml(product.meaning)}</p>
+
+          ${
+            product.in_stock
+              ? `<span class="stock-badge">${product.stock} in stock</span>`
+              : '<span class="stock-badge">Out of Stock</span>'
+          }
+        </div>
+
+        <button 
+          type="button" 
+          class="btn-toggle-varieties" 
+          onclick="toggleCatalogExpand(${product.id})"
+          ${!product.in_stock ? 'disabled' : ''}
         >
-
-        ${product.tag ? `<span class="flower-tag">${escapeHtml(product.tag)}</span>` : ''}
-      </div>
-
-      <div class="flower-card-body">
-        <h3>${escapeHtml(product.name)}</h3>
-        <p class="meaning">${escapeHtml(product.meaning)}</p>
-        ${
-          product.in_stock
-            ? `<span class="stock-badge">${product.stock} in stock</span>`
-            : '<span class="stock-badge">Out of Stock</span>'
-        }
-      </div>
-
-      <div class="flower-card-footer">
-        <span class="price">${money(product.price)}</span>
-
-        <button class="btn-add" onclick="addToCart(this, ${product.id}, 1)" ${!product.in_stock ? 'disabled' : ''}>
-          <i class="fa-solid fa-plus"></i> Add
+          from ${money(cheapest)} <i class="fa-solid fa-chevron-down"></i>
         </button>
-      </div>
-    </article>
-  `).join('');
+
+        <div class="variety-panel">
+          ${product.varieties.map(v => `
+            <div class="variety-row ${v.stock <= 0 ? 'disabled' : ''}">
+              <span class="variety-swatch" style="background:${escapeHtml(v.color || '#ccc')}"></span>
+              <span class="variety-row-name">${escapeHtml(v.name)}</span>
+              <span class="variety-row-stock">${v.stock} left</span>
+              <span class="variety-row-price">${money(v.price)}</span>
+              <button 
+                class="btn-add-sm" 
+                onclick="addToCart(this, ${product.id}, ${v.id}, 1)" 
+                ${v.stock <= 0 ? 'disabled' : ''}
+              >
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+          `).join('')}
+        </div>
+      </article>
+    `;
+  }).join('');
 }
 
 async function loadProductsRealtime(firstLoad = false) {
@@ -155,8 +199,10 @@ async function loadProductsRealtime(firstLoad = false) {
 
     if (newSignature !== lastCatalogSignature) {
       lastCatalogSignature = newSignature;
+      lastCatalogProducts = products;
       renderCatalog(products);
     }
+
   } catch (error) {
     console.error(error);
 
@@ -187,5 +233,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 3000);
 });
 </script>
+
 </body>
 </html>
