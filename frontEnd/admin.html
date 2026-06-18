@@ -48,6 +48,11 @@
     <h2 id="stat-revenue">$0.00</h2>
     <p>Revenue</p>
   </div>
+
+  <div class="stat-card">
+    <h2 id="stat-messages">0</h2>
+    <p>Messages</p>
+  </div>
 </section>
 
 <div class="admin-tabs">
@@ -57,6 +62,11 @@
 
   <button class="tab-btn" onclick="switchTab('products', this)">
     <i class="fa-solid fa-seedling"></i> Products
+  </button>
+
+  <button class="tab-btn" onclick="switchTab('messages', this)">
+    <i class="fa-solid fa-envelope-open-text"></i> Messages
+    <span class="tab-count" id="messages-tab-count">0</span>
   </button>
 
   <button class="tab-btn" onclick="switchTab('customers', this)">
@@ -127,6 +137,23 @@
         </tr>
       </tbody>
     </table>
+  </div>
+</section>
+
+<section id="tab-messages" class="tab-content">
+  <div class="admin-card messages-header-card">
+    <div>
+      <h3>Customer Messages</h3>
+      <p>Preview contact form submissions and update their status.</p>
+    </div>
+
+    <button class="btn-secondary" type="button" onclick="loadMessages(false)">
+      <i class="fa-solid fa-rotate"></i> Refresh
+    </button>
+  </div>
+
+  <div class="messages-grid" id="messages-grid">
+    <div class="empty-row">Loading messages...</div>
   </div>
 </section>
 

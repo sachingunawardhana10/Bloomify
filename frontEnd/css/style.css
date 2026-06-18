@@ -1223,3 +1223,669 @@ footer{
   opacity: .5;
   cursor: not-allowed;
 }
+
+/* =========================================================
+   BLOOMIFY CUSTOMIZE LIVE DEMO — FINAL OVERRIDE
+   Add this at the VERY BOTTOM of style.css
+========================================================= */
+
+.customize-live-page{
+  min-height:100vh;
+  background:
+    linear-gradient(rgba(255,248,237,.86), rgba(255,248,237,.9)),
+    url("../images/vintage-paper.jpg");
+  background-size:cover;
+  background-attachment:fixed;
+  background-position:center;
+}
+
+/* ---------- HERO ---------- */
+
+.customize-hero{
+  position:relative;
+  overflow:hidden;
+  padding:82px 7% 74px;
+  text-align:center;
+  background:
+    linear-gradient(rgba(255,248,237,.82), rgba(255,248,237,.92)),
+    url("../images/vintage-paper.jpg");
+  background-size:cover;
+  background-position:center;
+  border-bottom:1px solid rgba(196,160,99,.3);
+}
+
+.customize-hero::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle at top left, rgba(184,90,111,.22), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(196,160,99,.2), transparent 36%);
+  pointer-events:none;
+}
+
+.customize-hero-flower{
+  position:absolute;
+  width:370px;
+  height:370px;
+  background:url("../images/floral-corner.png") no-repeat center/contain;
+  opacity:.16;
+  pointer-events:none;
+}
+
+.customize-hero-flower.left{
+  left:-125px;
+  bottom:-135px;
+}
+
+.customize-hero-flower.right{
+  right:-130px;
+  top:-105px;
+  transform:rotate(180deg);
+}
+
+.customize-hero-content{
+  position:relative;
+  z-index:2;
+}
+
+.customize-hero h1{
+  font-family:'Cormorant Garamond', serif;
+  font-size:clamp(58px,7vw,108px);
+  line-height:.86;
+  color:var(--text);
+  margin-bottom:20px;
+}
+
+.customize-hero h1 span{
+  color:var(--primary);
+  font-style:italic;
+}
+
+.customize-hero p{
+  max-width:760px;
+  margin:0 auto;
+  color:var(--muted);
+  font-size:18px;
+  line-height:1.8;
+}
+
+/* ---------- MAIN LAYOUT ---------- */
+
+.customize-demo-shell{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) 430px;
+  gap:28px;
+  align-items:start;
+  padding:58px 7% 92px;
+  max-width:1600px;
+  margin:0 auto;
+}
+
+.customize-section-head{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:22px;
+  margin-bottom:25px;
+}
+
+.customize-section-head h2{
+  font-family:'Cormorant Garamond', serif;
+  font-size:54px;
+  line-height:1;
+}
+
+.customize-section-head p{
+  color:var(--muted);
+  margin-top:6px;
+}
+
+.customize-search-box{
+  min-width:260px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 15px;
+  border-radius:999px;
+  background:rgba(255,250,241,.9);
+  border:1px solid rgba(196,160,99,.38);
+  box-shadow:0 12px 26px rgba(54,34,25,.08);
+}
+
+.customize-search-box i{
+  color:var(--primary);
+}
+
+.customize-search-box input{
+  width:100%;
+  border:none;
+  outline:none;
+  background:transparent;
+  color:var(--text);
+}
+
+/* ---------- LEFT FLOWER VARIETY PANEL ---------- */
+
+.customize-live-page .live-flower-options{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:18px;
+}
+
+.customize-live-page .flower-opt-card.vintage-variety-card{
+  background:
+    linear-gradient(rgba(255,250,241,.9), rgba(255,250,241,.94)),
+    url("../images/vintage-paper.jpg");
+  background-size:cover;
+  border:1px solid rgba(196,160,99,.34);
+  border-radius:20px;
+  box-shadow:0 18px 45px rgba(54,34,25,.11);
+  overflow:hidden;
+  margin:0;
+  transition:.25s ease;
+}
+
+.customize-live-page .flower-opt-card.vintage-variety-card:hover,
+.customize-live-page .flower-opt-card.vintage-variety-card.selected{
+  transform:translateY(-4px);
+  border-color:rgba(200,79,115,.45);
+}
+
+.customize-live-page .flower-opt-btn.vintage-flower-toggle{
+  width:100%;
+  border:none;
+  background:transparent;
+  cursor:pointer;
+  display:grid;
+  grid-template-columns:74px 1fr auto;
+  align-items:center;
+  gap:14px;
+  padding:16px;
+  text-align:left;
+}
+
+.customize-live-page .vintage-flower-toggle .f-thumb{
+  width:74px;
+  height:74px;
+  border-radius:18px;
+  object-fit:cover;
+  border:1px solid rgba(196,160,99,.35);
+}
+
+.customize-live-page .vintage-flower-toggle .f-info{
+  display:grid;
+  gap:4px;
+}
+
+.customize-live-page .vintage-flower-toggle .f-name{
+  font-family:'Cormorant Garamond', serif;
+  font-size:28px;
+  line-height:1;
+  color:var(--text);
+  font-weight:700;
+}
+
+.customize-live-page .vintage-flower-toggle .f-price{
+  font-size:13px;
+  color:var(--muted);
+}
+
+.selected-mini-label{
+  width:max-content;
+  margin-top:4px;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:900;
+  background:rgba(200,79,115,.13);
+  color:var(--primary-dark);
+}
+
+.customize-live-page .f-chevron{
+  color:var(--primary);
+  transition:.25s ease;
+}
+
+.customize-live-page .flower-opt-card.open .f-chevron{
+  transform:rotate(180deg);
+}
+
+/* Important: overrides your old .variety-panel max-height CSS */
+.customize-live-page .vintage-variety-panel{
+  display:none;
+  max-height:none !important;
+  overflow:visible !important;
+  transition:none !important;
+  padding:0 16px 16px;
+}
+
+.customize-live-page .flower-opt-card.open .vintage-variety-panel{
+  display:grid;
+  gap:9px;
+  max-height:none !important;
+}
+
+.customize-live-page .variety-row{
+  width:100%;
+  border:none;
+  cursor:pointer;
+  display:grid;
+  grid-template-columns:24px 1fr auto auto;
+  align-items:center;
+  gap:10px;
+  padding:11px 12px;
+  border-radius:14px;
+  background:rgba(255,253,248,.84);
+  border:1px solid rgba(196,160,99,.24);
+  color:var(--text);
+  transition:.2s ease;
+}
+
+.customize-live-page .variety-row:hover{
+  background:rgba(200,79,115,.09);
+}
+
+.customize-live-page .variety-row.disabled{
+  opacity:.5;
+  cursor:not-allowed;
+}
+
+.customize-live-page .variety-swatch{
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  border:2px solid rgba(255,255,255,.9);
+  box-shadow:0 0 0 1px rgba(54,34,25,.18);
+}
+
+.customize-live-page .variety-row-name{
+  font-weight:800;
+}
+
+.customize-live-page .variety-row-stock,
+.customize-live-page .variety-row-price{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.customize-live-page .variety-row-price{
+  font-weight:900;
+  color:var(--green);
+}
+
+.no-variety-text{
+  color:var(--muted);
+  text-align:center;
+  padding:12px;
+}
+
+/* ---------- RIGHT LIVE PREVIEW ---------- */
+
+.live-demo-panel{
+  position:sticky;
+  top:104px;
+}
+
+.live-demo-card{
+  position:relative;
+  overflow:hidden;
+  padding:28px;
+  border-radius:24px;
+  background:
+    linear-gradient(rgba(255,250,241,.91), rgba(255,250,241,.94)),
+    url("../images/vintage-paper.jpg");
+  background-size:cover;
+  border:1px solid rgba(196,160,99,.38);
+  box-shadow:0 26px 76px rgba(54,34,25,.16);
+}
+
+.live-demo-card::before{
+  content:"";
+  position:absolute;
+  inset:12px;
+  border:1px solid rgba(196,160,99,.25);
+  border-radius:18px;
+  pointer-events:none;
+}
+
+.live-demo-label{
+  position:relative;
+  z-index:2;
+  font-family:'Cormorant Garamond', serif;
+  font-size:14px;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:var(--primary-dark);
+  margin-bottom:8px;
+}
+
+.live-demo-card h2{
+  position:relative;
+  z-index:2;
+  font-family:'Cormorant Garamond', serif;
+  font-size:48px;
+  line-height:1;
+  margin-bottom:20px;
+}
+
+.live-bouquet-stage{
+  position:relative;
+  z-index:2;
+  height:320px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:22px;
+  background:
+    radial-gradient(circle, rgba(255,255,255,.72), rgba(235,211,184,.58));
+  border:1px solid rgba(196,160,99,.3);
+  overflow:hidden;
+}
+
+.live-bouquet-stage::before{
+  content:"";
+  position:absolute;
+  width:210px;
+  height:210px;
+  border-radius:50%;
+  background:rgba(200,79,115,.08);
+}
+
+.live-bouquet-visual{
+  position:relative;
+  width:260px;
+  height:245px;
+  z-index:4;
+}
+
+.live-bouquet-visual.empty{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.empty-preview{
+  text-align:center;
+  color:var(--muted);
+}
+
+.empty-preview i{
+  display:block;
+  margin-bottom:10px;
+  font-size:36px;
+  color:var(--primary);
+}
+
+.bouquet-bloom{
+  position:absolute;
+  left:50%;
+  top:45%;
+  width:var(--s);
+  height:var(--s);
+  transform:
+    translate(-50%, -50%)
+    translate(var(--x), var(--y))
+    rotate(var(--r));
+  animation:bloomPop .36s ease both;
+  animation-delay:var(--delay);
+}
+
+.bouquet-bloom img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:50%;
+  border:3px solid var(--swatch, rgba(255,250,241,.9));
+  box-shadow:0 12px 22px rgba(54,34,25,.18);
+}
+
+@keyframes bloomPop{
+  from{
+    opacity:0;
+    transform:
+      translate(-50%, -50%)
+      translate(var(--x), calc(var(--y) + 22px))
+      rotate(var(--r))
+      scale(.72);
+  }
+
+  to{
+    opacity:1;
+    transform:
+      translate(-50%, -50%)
+      translate(var(--x), var(--y))
+      rotate(var(--r))
+      scale(1);
+  }
+}
+
+.bouquet-wrap{
+  position:absolute;
+  bottom:18px;
+  width:145px;
+  height:118px;
+  background:linear-gradient(145deg,#d8b887,#a87555);
+  clip-path:polygon(15% 0, 85% 0, 62% 100%, 38% 100%);
+  border-radius:0 0 24px 24px;
+  box-shadow:0 18px 32px rgba(54,34,25,.18);
+  z-index:3;
+}
+
+.bouquet-wrap::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:38px;
+  width:155px;
+  height:18px;
+  transform:translateX(-50%);
+  background:rgba(159,47,85,.82);
+  border-radius:999px;
+}
+
+.live-total-box{
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:12px;
+  margin-top:16px;
+}
+
+.live-total-box div{
+  padding:14px;
+  border-radius:16px;
+  background:rgba(255,253,248,.76);
+  border:1px solid rgba(196,160,99,.25);
+}
+
+.live-total-box span{
+  display:block;
+  color:var(--muted);
+  font-size:12px;
+  margin-bottom:4px;
+}
+
+.live-total-box strong{
+  color:var(--primary-dark);
+  font-size:20px;
+}
+
+/* ---------- SELECTED LIST ---------- */
+
+.selected-bouquet-box{
+  position:relative;
+  z-index:2;
+  margin-top:18px;
+}
+
+.selected-bouquet-box h3{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:15px;
+  color:var(--primary-dark);
+  margin-bottom:12px;
+}
+
+.selected-flowers-list{
+  display:grid;
+  gap:10px;
+  max-height:250px;
+  overflow:auto;
+  padding-right:4px;
+}
+
+.customize-live-page .bouquet-empty{
+  color:var(--muted);
+  padding:16px;
+  border-radius:14px;
+  background:rgba(255,253,248,.7);
+  text-align:center;
+  min-height:auto;
+}
+
+.live-selected-item{
+  border-radius:14px;
+  background:rgba(255,253,248,.78);
+  border:1px solid rgba(196,160,99,.24);
+  padding:10px;
+}
+
+.live-selected-item .bouquet-item-main{
+  display:grid;
+  grid-template-columns:48px 1fr;
+  align-items:center;
+  gap:10px;
+}
+
+.live-selected-item .bouquet-thumb{
+  width:48px;
+  height:48px;
+  border-radius:12px;
+  object-fit:cover;
+}
+
+.customize-live-page .qty-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:10px;
+}
+
+.customize-live-page .qty-actions button{
+  width:30px;
+  height:30px;
+  border:none;
+  border-radius:50%;
+  cursor:pointer;
+  background:#f1dccb;
+  color:var(--primary-dark);
+  font-weight:900;
+}
+
+.customize-live-page .qty-actions strong{
+  min-width:24px;
+  text-align:center;
+}
+
+#add-bouquet-btn{
+  position:relative;
+  z-index:2;
+  width:100%;
+  margin-top:18px;
+}
+
+/* ---------- LOADING / EMPTY ---------- */
+
+.demo-loading-card,
+.demo-empty-card{
+  grid-column:1 / -1;
+  text-align:center;
+  padding:50px 25px;
+  border-radius:20px;
+  background:rgba(255,250,241,.86);
+  border:1px solid rgba(196,160,99,.34);
+  color:var(--muted);
+}
+
+.demo-loading-card i,
+.demo-empty-card i{
+  display:block;
+  margin-bottom:12px;
+  font-size:30px;
+  color:var(--primary);
+}
+
+.demo-empty-card h3{
+  font-family:'Cormorant Garamond', serif;
+  font-size:36px;
+  color:var(--text);
+}
+
+/* ---------- RESPONSIVE ---------- */
+
+@media(max-width:1250px){
+  .customize-demo-shell{
+    grid-template-columns:1fr;
+  }
+
+  .live-demo-panel{
+    position:relative;
+    top:auto;
+  }
+
+  .customize-live-page .live-flower-options{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media(max-width:760px){
+  .customize-hero{
+    padding:60px 5% 58px;
+  }
+
+  .customize-demo-shell{
+    padding:42px 5% 72px;
+  }
+
+  .customize-section-head{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .customize-section-head h2{
+    font-size:40px;
+  }
+
+  .customize-search-box{
+    width:100%;
+    min-width:0;
+  }
+
+  .customize-live-page .live-flower-options{
+    grid-template-columns:1fr;
+  }
+
+  .customize-live-page .flower-opt-btn.vintage-flower-toggle{
+    grid-template-columns:64px 1fr auto;
+  }
+
+  .customize-live-page .vintage-flower-toggle .f-thumb{
+    width:64px;
+    height:64px;
+  }
+
+  .live-demo-card{
+    padding:22px;
+  }
+
+  .live-bouquet-stage{
+    height:280px;
+  }
+
+  .live-total-box{
+    grid-template-columns:1fr;
+  }
+}

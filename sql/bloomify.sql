@@ -53,6 +53,19 @@ CREATE TABLE IF NOT EXISTS orders (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- ─── CONTACT MESSAGES ─────────────────────────────────────
+CREATE TABLE IF NOT EXISTS contact_messages (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    user_id    INT NULL,
+    name       VARCHAR(100) NOT NULL,
+    email      VARCHAR(150) NOT NULL,
+    subject    VARCHAR(150) NOT NULL,
+    message    TEXT NOT NULL,
+    status     ENUM('new','read','archived') DEFAULT 'new',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
 -- ─── ORDER ITEMS ──────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS order_items (
     id        INT AUTO_INCREMENT PRIMARY KEY,
@@ -81,3 +94,70 @@ INSERT INTO flowers (name, emoji, price, meaning, tag, stock) VALUES
 ('Peony',     '🌸', 18.00, 'Prosperity & Beauty','Luxury',      100),
 ('Orchid',    '🪷', 20.00, 'Elegance & Strength','Premium',     100)
 ON DUPLICATE KEY UPDATE id = id;
+
+-- ─── FLOWER VARIETY ────────────────────────────────────────
+USE bloomify;
+-- 1 = Rose
+INSERT INTO flower_varieties (flower_id, variety_name, color_hex, price, stock) VALUES
+  (1, 'Red',    '#C0392B', 12.00, 25),
+  (1, 'Pink',   '#F1A7B7', 13.00, 20),
+  (1, 'Yellow', '#F4D35E', 11.00, 15),
+  (1, 'White',  '#FAFAF5', 14.00, 10);
+
+-- 2 = Tulip
+INSERT INTO flower_varieties (flower_id, variety_name, color_hex, price, stock) VALUES
+  (2, 'Pink',   '#F3B6CC', 10.00, 20),
+  (2, 'Yellow', '#F6E27A', 9.00,  15),
+  (2, 'Red',    '#C8413B', 11.00, 10),
+  (2, 'Purple', '#9B7EBD', 12.00, 8);
+
+-- 3 = Lily
+INSERT INTO flower_varieties (flower_id, variety_name, color_hex, price, stock) VALUES
+  (3, 'Pink',   '#E8AFC2', 15.00, 15),
+  (3, 'White',  '#FAFAF5', 16.00, 10),
+  (3, 'Orange', '#E8965A', 17.00, 8);
+
+-- 4 = Sunflower
+INSERT INTO flower_varieties (flower_id, variety_name, color_hex, price, stock) VALUES
+  (4, 'Yellow',   '#F2C336', 8.00,  35),
+  (4, 'Burgundy', '#7B3F3F', 10.00, 12);
+
+-- 5 = Peony
+INSERT INTO flower_varieties (flower_id, variety_name, color_hex, price, stock) VALUES
+  (5, 'Pink',  '#EFB3C4', 18.00, 12),
+  (5, 'White', '#FAFAF5', 19.00, 8),
+  (5, 'Coral', '#E98A72', 20.00, 6);
+
+-- 6 = Orchid
+INSERT INTO flower_varieties (flower_id, variety_name, color_hex, price, stock) VALUES
+  (6, 'Purple', '#9B7EBD', 20.00, 10),
+  (6, 'White',  '#FAFAF5', 22.00, 6),
+  (6, 'Pink',   '#E8AFC2', 21.00, 6);
+
+-- 7 = Daisy
+INSERT INTO flower_varieties (flower_id, variety_name, color_hex, price, stock) VALUES
+  (7, 'White',  '#FAFAF5', 7.00, 25),
+  (7, 'Yellow', '#F2D24B', 7.50, 15),
+  (7, 'Pink',   '#EFB3C4', 8.00, 10);
+
+-- 8 = Lavender
+INSERT INTO flower_varieties (flower_id, variety_name, color_hex, price, stock) VALUES
+  (8, 'Purple', '#9B7EBD', 11.00, 18),
+  (8, 'Blue',   '#7C93C4', 12.00, 10);
+
+-- Now remove the placeholder "Standard" rows for all 8 flowers.
+DELETE FROM flower_varieties WHERE variety_name = 'Standard' AND flower_id IN (1,2,3,4,5,6,7,8);
+
+-- ─── CONTACT MESSAGES ─────────────────────────────────────
+CREATE TABLE IF NOT EXISTS contact_messages (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    user_id    INT NULL,
+    name       VARCHAR(100) NOT NULL,
+    email      VARCHAR(150) NOT NULL,
+    subject    VARCHAR(150) NOT NULL,
+    message    TEXT NOT NULL,
+    status     ENUM('new','read','archived') DEFAULT 'new',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
