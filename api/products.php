@@ -5,10 +5,10 @@ $action = $_GET['action'] ?? 'flowers';
 
 try {
 
-    // 'flowers' (used by app.js's hero teaser) and 'all' (used by catalog.html /
-    // customize.html) return the same shape, just under a different key —
-    // they were inconsistent before (only 'flowers' existed), this fixes that.
-    if ($action === 'flowers' || $action === 'all') {
+    // 'flowers' (used by app.js's hero teaser) and 'all' / 'list' / ''
+    // (used by catalog.html / customize.html, plus aliases a teammate added)
+    // all return the same shape, just under a different key.
+    if ($action === 'flowers' || $action === 'all' || $action === 'list' || $action === '') {
 
         $sql = "
             SELECT
@@ -73,7 +73,7 @@ try {
         }
         unset($flower);
 
-        $responseKey = $action === 'all' ? 'products' : 'data';
+        $responseKey = $action === 'flowers' ? 'data' : 'products';
 
         json_response([
             'success'    => true,
@@ -83,14 +83,14 @@ try {
 
     json_response([
         'success' => false,
-        'message' => 'Invalid action'
-    ], 400);
+        'message' => 'Unknown products action.'
+    ], 404);
 
 } catch (Throwable $e) {
 
     json_response([
         'success' => false,
-        'message' => 'Products API failed',
+        'message' => 'Products API failed.',
         'error' => $e->getMessage()
     ], 500);
 }
