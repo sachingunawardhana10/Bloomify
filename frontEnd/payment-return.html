@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Payment Status — Bloomify</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<main class="login-page">
+  <section class="login-card">
+    <div class="login-logo">Bloom<span>ify</span></div>
+
+    <h2 style="text-align:center;margin-top:12px;">Payment Status</h2>
+
+    <div id="payment-box" style="text-align:center;margin-top:20px;">
+      <p>Checking payment status...</p>
+    </div>
+
+    <a href="index.html" class="btn-secondary" style="width:100%;margin-top:20px;">
+      Back to Home
+    </a>
+  </section>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const orderId = params.get('order_id');
+
+async function checkPaymentStatus() {
+  const box = document.getElementById('payment-box');
+
+  if (!orderId) {
+    box.innerHTML = `
+      <div class="empty-icon">⚠️</div>
+      <h3>Invalid order</h3>
+      <p>Order ID is missing.</p>
+    `;
+    return;
+  }
+
+  try {
+    const { data } = await apiFetch(`/payment_status.php?order_id=${orderId}`);
+
+    if (!data.success) {
+      box.innerHTML = `
+        <div class="empty-icon">⚠️</div>
+        <h3>Status unavailable</h3>
+        <p>${escapeHtml(data.message || 'Could not check payment.')}</p>
+      `;
+      return;
+    }
+
+    const order = data.order;
+
+    if (order.payment_status === 'Paid') {
+      box.innerHTML = `
+        <div class="success-icon">✅</div>
+        <h3>Payment Successful</h3>
+        <p>Order #${order.id} is paid.</p>
+        <p><strong>Total:</strong> ${money(order.total)}</p>
+        <p><strong>Reference:</strong> ${escapeHtml(order.payment_reference || '-')}</p>
+        <p><strong>Order Status:</strong> ${escapeHtml(order.status)}</p>
+      `;
+      return;
+    }
+
+    if (order.payment_status === 'Failed' || order.payment_status === 'Cancelled') {
+      box.innerHTML = `
+        <div class="empty-icon">❌</div>
+        <h3>Payment ${escapeHtml(order.payment_status)}</h3>
+        <p>Order #${order.id} was not paid.</p>
+        <p><strong>Total:</strong> ${money(order.total)}</p>
+      `;
+      return;
+    }
+
+    box.innerHTML = `
+      <div class="empty-icon">⏳</div>
+      <h3>Payment Pending</h3>
+      <p>Order #${order.id} is waiting for gateway confirmation.</p>
+      <p><strong>Total:</strong> ${money(order.total)}</p>
+      <p>This page checks status automatically every 3 seconds.</p>
+    `;
+  } catch (error) {
+    console.error(error);
+
+    box.innerHTML = `
+      <div class="empty-icon">⚠️</div>
+      <h3>Could not check payment</h3>
+      <p>Check login session, payment_status.php, and PayHere notify URL.</p>
+    `;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  checkPaymentStatus();
+  setInterval(checkPaymentStatus, 3000);
+});
+</script>
+</body>
+</html>

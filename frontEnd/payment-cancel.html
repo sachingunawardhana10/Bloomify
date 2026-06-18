@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Payment Cancelled — Bloomify</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<main class="login-page">
+  <section class="login-card">
+    <div class="login-logo">Bloom<span>ify</span></div>
+
+    <div style="text-align:center;margin-top:20px;">
+      <div class="empty-icon">❌</div>
+      <h2>Payment Cancelled</h2>
+
+      <p style="color:var(--muted);margin-top:10px;">
+        You cancelled the online payment. Your order is not marked as paid.
+      </p>
+
+      <div id="retry-box" style="margin-top:20px;"></div>
+
+      <a href="index.html" class="btn-secondary" style="width:100%;margin-top:12px;">
+        Back to Home
+      </a>
+    </div>
+  </section>
+</main>
+
+<script src="js/config.js"></script>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const orderId = params.get('order_id');
+
+if (orderId) {
+  document.getElementById('retry-box').innerHTML = `
+    <a href="${window.API}/payhere_start.php?order_id=${orderId}" class="btn-primary" style="width:100%;">
+      Try Payment Again
+    </a>
+  `;
+}
+</script>
+</body>
+</html>
