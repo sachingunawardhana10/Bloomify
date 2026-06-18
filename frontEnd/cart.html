@@ -95,10 +95,43 @@
 
       <div class="notes-group">
         <label for="payment-method">Payment Method</label>
-        <select id="payment-method" required>
+        <select id="payment-method" required onchange="toggleCodDetails()">
           <option value="Cash on Delivery">Cash on Delivery</option>
           <option value="PayHere Online">PayHere Online</option>
         </select>
+      </div>
+
+      <div id="cod-details" class="cod-details">
+        <h3>Cash on Delivery Details</h3>
+
+        <div class="cod-grid">
+          <div class="notes-group">
+            <label for="cod-recipient-name">Recipient name</label>
+            <input id="cod-recipient-name" type="text" placeholder="Full name">
+          </div>
+
+          <div class="notes-group">
+            <label for="cod-phone">Phone number</label>
+            <input id="cod-phone" type="tel" placeholder="07XXXXXXXX">
+          </div>
+        </div>
+
+        <div class="notes-group">
+          <label for="cod-address">Delivery address</label>
+          <textarea id="cod-address" placeholder="House number, street, landmarks..."></textarea>
+        </div>
+
+        <div class="cod-grid">
+          <div class="notes-group">
+            <label for="cod-city">City / area</label>
+            <input id="cod-city" type="text" placeholder="E.g. Colombo">
+          </div>
+
+          <div class="notes-group">
+            <label for="cod-delivery-time">Preferred delivery time</label>
+            <input id="cod-delivery-time" type="text" placeholder="E.g. Today 4 PM - 6 PM">
+          </div>
+        </div>
       </div>
 
       <div class="notes-group">
@@ -117,7 +150,7 @@
   </div>
 
   <div id="cart-success" class="success-card" style="display:none;">
-    <div class="success-icon">🌸</div>
+    <div class="success-icon"></div>
     <h3>Order Placed!</h3>
     <p id="success-details"></p>
 
@@ -158,7 +191,7 @@ async function loadCart() {
 
     if (response.status === 401) {
       empty.innerHTML = `
-        <div class="empty-icon">🔒</div>
+        <div class="empty-icon"></div>
         <h3>Please login first</h3>
         <p>Sign in to view and manage your cart.</p>
         <a href="login.html" class="btn-primary" style="margin-top:20px;">
@@ -186,7 +219,7 @@ async function loadCart() {
     loading.style.display = 'none';
 
     empty.innerHTML = `
-      <div class="empty-icon">⚠️</div>
+      <div class="empty-icon"></div>
       <h3>Cart failed to load</h3>
       <p>Check API path, database connection and login session.</p>
     `;
@@ -292,9 +325,18 @@ async function checkout() {
   const button = document.getElementById('checkout-btn');
   const notes = document.getElementById('cart-notes').value.trim();
   const paymentMethod = document.getElementById('payment-method').value;
+  const codDetails = getCodDetails();
 
   if (!paymentMethod) {
     return showToast('Please select a payment method.', 'error');
+  }
+
+  if (paymentMethod === 'Cash on Delivery') {
+    const missingField = validateCodDetails(codDetails);
+
+    if (missingField) {
+      return showToast(`${missingField} is required for Cash on Delivery.`, 'error');
+    }
   }
 
   button.disabled = true;
@@ -306,7 +348,8 @@ async function checkout() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         notes: notes,
-        payment_method: paymentMethod
+        payment_method: paymentMethod,
+        cod_details: paymentMethod === 'Cash on Delivery' ? codDetails : null
       })
     });
 
@@ -323,8 +366,8 @@ async function checkout() {
       document.getElementById('cart-content').style.display = 'none';
       document.getElementById('cart-success').style.display = 'block';
 
-      document.getElementById('success-details').textContent =
-        `Order #${data.order_id} confirmed — Total ${money(data.total)}. Payment: Cash on Delivery.`;
+      document.getElementById('success-details').innerHTML =
+        renderSuccessDetails(data, paymentMethod, codDetails, notes);
     } else {
       showToast(data.message || 'Order failed.', 'error');
 
@@ -341,7 +384,64 @@ async function checkout() {
   }
 }
 
+function getCodDetails() {
+  return {
+    recipient_name: document.getElementById('cod-recipient-name').value.trim(),
+    phone: document.getElementById('cod-phone').value.trim(),
+    address: document.getElementById('cod-address').value.trim(),
+    city: document.getElementById('cod-city').value.trim(),
+    delivery_time: document.getElementById('cod-delivery-time').value.trim()
+  };
+}
+
+function validateCodDetails(details) {
+  if (!details.recipient_name) return 'Recipient name';
+  if (!details.phone) return 'Phone number';
+  if (!details.address) return 'Delivery address';
+  if (!details.city) return 'City / area';
+  return '';
+}
+
+function toggleCodDetails() {
+  const paymentMethod = document.getElementById('payment-method').value;
+  document.getElementById('cod-details').style.display =
+    paymentMethod === 'Cash on Delivery' ? 'block' : 'none';
+}
+
+function renderSuccessDetails(order, paymentMethod, codDetails, notes) {
+  const rows = [
+    ['Order ID', `#${order.order_id}`],
+    ['Total', money(order.total)],
+    ['Payment', paymentMethod],
+    ['Recipient', codDetails.recipient_name],
+    ['Phone', codDetails.phone],
+    ['Address', codDetails.address],
+    ['City / area', codDetails.city]
+  ];
+
+  if (codDetails.delivery_time) {
+    rows.push(['Delivery time', codDetails.delivery_time]);
+  }
+
+  if (notes) {
+    rows.push(['Notes', notes]);
+  }
+
+  return `
+    <span>Your order has been confirmed. Please keep these delivery details ready.</span>
+    <dl class="success-details-list">
+      ${rows.map(([label, value]) => `
+        <div>
+          <dt>${escapeHtml(label)}</dt>
+          <dd>${escapeHtml(value)}</dd>
+        </div>
+      `).join('')}
+    </dl>
+  `;
+}
+
 document.addEventListener('DOMContentLoaded', loadCart);
+document.addEventListener('DOMContentLoaded', toggleCodDetails);
 </script>
 </body>
 </html>

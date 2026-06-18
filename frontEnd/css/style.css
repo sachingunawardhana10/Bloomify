@@ -897,6 +897,7 @@ button:disabled{
 
 .notes-group textarea,
 .notes-group select,
+.notes-group input,
 .form-group input{
   width:100%;
   border:1px solid var(--border);
@@ -914,6 +915,26 @@ button:disabled{
 .notes-group select{
   font-family:'DM Sans',sans-serif;
   font-weight:800;
+}
+
+.cod-details{
+  margin:18px 0;
+  padding:18px;
+  border:1px solid var(--border);
+  border-radius:20px;
+  background:rgba(255,250,245,.72);
+}
+
+.cod-details h3{
+  font-family:'DM Sans',sans-serif;
+  font-size:15px;
+  margin-bottom:4px;
+}
+
+.cod-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
 }
 
 .empty-cart,
@@ -938,6 +959,42 @@ button:disabled{
 .success-card p{
   color:var(--muted);
   margin-top:8px;
+}
+
+.success-details-list{
+  max-width:620px;
+  margin:22px auto 0;
+  text-align:left;
+  border:1px solid var(--border);
+  border-radius:20px;
+  overflow:hidden;
+  background:rgba(255,250,245,.76);
+}
+
+.success-details-list div{
+  display:grid;
+  grid-template-columns:150px 1fr;
+  gap:16px;
+  padding:13px 16px;
+  border-bottom:1px solid var(--border);
+}
+
+.success-details-list div:last-child{
+  border-bottom:none;
+}
+
+.success-details-list dt{
+  font-family:'DM Sans',sans-serif;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:900;
+  text-transform:uppercase;
+}
+
+.success-details-list dd{
+  color:var(--text);
+  font-weight:700;
+  overflow-wrap:anywhere;
 }
 
 .login-page{
@@ -1178,6 +1235,16 @@ footer{
 
   .nav-user span{
     display:none;
+  }
+
+  .cod-grid{
+    grid-template-columns:1fr;
+    gap:0;
+  }
+
+  .success-details-list div{
+    grid-template-columns:1fr;
+    gap:4px;
   }
 }
 
