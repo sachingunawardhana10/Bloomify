@@ -1,3 +1,6 @@
+// ======================
+// API FETCH WRAPPER
+// ======================
 async function apiFetch(endpoint, options = {}) {
   const settings = {
     credentials: 'include',
@@ -10,13 +13,14 @@ async function apiFetch(endpoint, options = {}) {
 
   const response = await fetch(`${window.API}${endpoint}`, settings);
   const text = await response.text();
+
   let data;
 
   try {
     data = text ? JSON.parse(text) : {};
   } catch (error) {
     console.error('Invalid server response:', text);
-    throw new Error('Server returned non-JSON. Check PHP errors, API path and database connection.');
+    throw new Error('Server returned non-JSON. Check PHP errors.');
   }
 
   if (!response.ok && !data.message) {
@@ -26,6 +30,9 @@ async function apiFetch(endpoint, options = {}) {
   return { response, data };
 }
 
+// ======================
+// HELPERS
+// ======================
 function money(value) {
   return `$${Number(value || 0).toFixed(2)}`;
 }
@@ -46,6 +53,9 @@ function updateCartCount(count) {
   });
 }
 
+// ======================
+// TOAST
+// ======================
 function showToast(message, type = 'success') {
   let container = document.getElementById('toast-container');
 
@@ -64,16 +74,21 @@ function showToast(message, type = 'success') {
   setTimeout(() => toast.remove(), 2800);
 }
 
+// ======================
+// SESSION CHECK
+// ======================
 async function checkSession() {
   try {
     const { data } = await apiFetch('/auth.php?action=check');
     return data;
   } catch (error) {
-    console.error(error);
     return { logged_in: false, user: null };
   }
 }
 
+// ======================
+// NAVBAR UPDATE
+// ======================
 async function refreshNavbar() {
   const session = await checkSession();
 
@@ -91,9 +106,10 @@ async function refreshNavbar() {
     try {
       const { data } = await apiFetch('/cart.php?action=count');
       updateCartCount(data.success ? data.count : 0);
-    } catch (error) {
+    } catch {
       updateCartCount(0);
     }
+
   } else {
     if (loginLink) loginLink.style.display = 'list-item';
     if (userBox) userBox.style.display = 'none';
@@ -104,7 +120,13 @@ async function refreshNavbar() {
   return session;
 }
 
-async function addToCart(button, flowerId, quantity = 1) {
+// ======================
+// ADD TO CART
+// ======================
+// NOTE: varietyId is now required — every flower has at least one variety
+// (see flower_varieties table), so a flower id alone is no longer enough
+// to price or stock-check the item.
+async function addToCart(button, flowerId, varietyId, quantity = 1) {
   const originalText = button ? button.innerHTML : '';
 
   try {
@@ -116,40 +138,42 @@ async function addToCart(button, flowerId, quantity = 1) {
     const { response, data } = await apiFetch('/cart.php?action=add', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ flower_id: flowerId, quantity })
+      body: JSON.stringify({ flower_id: flowerId, variety_id: varietyId, quantity })
     });
 
     if (response.status === 401) {
-      showToast('Please login before adding flowers to cart.', 'error');
+      showToast('Please login first.', 'error');
       setTimeout(() => window.location.href = 'login.html', 700);
       return false;
     }
 
     if (!data.success) {
-      showToast(data.message || 'Could not add to cart.', 'error');
+      showToast(data.message || 'Failed to add to cart.', 'error');
       return false;
     }
 
     updateCartCount(data.count || 0);
-    showToast('Added to cart.');
+    showToast('Added to cart');
 
     if (button) {
       button.innerHTML = '<i class="fa-solid fa-check"></i> Added';
-      setTimeout(() => {
-        button.innerHTML = originalText;
-      }, 900);
+      setTimeout(() => button.innerHTML = originalText, 900);
     }
 
     return true;
+
   } catch (error) {
-    console.error(error);
-    showToast(error.message || 'Network error.', 'error');
+    showToast('Network error', 'error');
     return false;
+
   } finally {
     if (button) button.disabled = false;
   }
 }
 
+// ======================
+// LOGOUT
+// ======================
 async function handleLogout() {
   try {
     await apiFetch('/auth.php?action=logout');
@@ -158,4 +182,54 @@ async function handleLogout() {
   }
 }
 
+// ======================
+// INIT NAVBAR
+// ======================
 document.addEventListener('DOMContentLoaded', refreshNavbar);
+
+async function loadFlowers() {
+  try {
+    console.log("Loading flowers...");
+
+    const { data } = await apiFetch('/products.php?action=flowers');
+
+    console.log("API response:", data);
+
+    const container = document.getElementById("flowerContainer");
+
+    if (!container) {
+      console.error("flowerContainer does not exist!");
+      return;
+    }
+
+    container.innerHTML = "";
+
+    data.data.forEach(flower => {
+      container.innerHTML += `
+        <div class="flower-card">
+          <img 
+            src="${flower.image}" 
+            alt="${flower.name}"
+          >
+
+          <div class="details">
+            <h3>
+              ${flower.emoji} ${flower.name}
+            </h3>
+
+            <p>
+              from ${money(flower.price)} • ${flower.stock} left
+            </p>
+          </div>
+        </div>
+      `;
+    });
+
+    console.log("Flowers rendered successfully");
+
+  } catch (error) {
+    console.error("Flower loading failed:", error);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", loadFlowers);
