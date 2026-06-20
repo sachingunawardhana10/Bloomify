@@ -31,15 +31,30 @@ CREATE TABLE IF NOT EXISTS flowers (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ─── FLOWER VARIETIES ──────────────────────────────────────
+CREATE TABLE IF NOT EXISTS flower_varieties (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    flower_id    INT NOT NULL,
+    variety_name VARCHAR(100) NOT NULL,
+    color_hex    VARCHAR(7)   NOT NULL,
+    price        DECIMAL(10,2) NOT NULL,
+    stock        INT NOT NULL DEFAULT 0,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_flower_variety (flower_id, variety_name),
+    FOREIGN KEY (flower_id) REFERENCES flowers(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- ─── CART ─────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS cart (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     user_id    INT NOT NULL,
     flower_id  INT NOT NULL,
+    variety_id INT NOT NULL,
     quantity   INT DEFAULT 1,
-    UNIQUE KEY unique_cart (user_id, flower_id),
-    FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE,
-    FOREIGN KEY (flower_id) REFERENCES flowers(id) ON DELETE CASCADE
+    UNIQUE KEY unique_cart (user_id, flower_id, variety_id),
+    FOREIGN KEY (user_id)    REFERENCES users(id)   ON DELETE CASCADE,
+    FOREIGN KEY (flower_id)  REFERENCES flowers(id) ON DELETE CASCADE,
+    FOREIGN KEY (variety_id) REFERENCES flower_varieties(id) ON DELETE CASCADE
 );
 
 -- ─── ORDERS ───────────────────────────────────────────────
@@ -86,14 +101,35 @@ CREATE TABLE IF NOT EXISTS contact_messages (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS payments (
+    id                 INT AUTO_INCREMENT PRIMARY KEY,
+    order_id           INT NOT NULL,
+    payment_gateway    VARCHAR(80) NOT NULL,
+    gateway_payment_id VARCHAR(100) NOT NULL,
+    amount             DECIMAL(10,2) NOT NULL,
+    currency           VARCHAR(10) NOT NULL,
+    method             VARCHAR(40) DEFAULT NULL,
+    status_code        VARCHAR(20) DEFAULT NULL,
+    status_message     VARCHAR(255) DEFAULT NULL,
+    md5sig             VARCHAR(255) DEFAULT NULL,
+    raw_payload        JSON NULL,
+    created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at         TIMESTAMP NULL DEFAULT NULL,
+    UNIQUE KEY unique_gateway_payment (gateway_payment_id),
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS order_items (
-    id        INT AUTO_INCREMENT PRIMARY KEY,
-    order_id  INT NOT NULL,
-    flower_id INT NOT NULL,
-    quantity  INT NOT NULL,
-    price     DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (order_id)  REFERENCES orders(id)  ON DELETE CASCADE,
-    FOREIGN KEY (flower_id) REFERENCES flowers(id) ON DELETE CASCADE
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    order_id   INT NOT NULL,
+    flower_id  INT NOT NULL,
+    variety_id INT NOT NULL,
+    quantity   INT NOT NULL,
+    price      DECIMAL(10,2) NOT NULL,
+    FOREIGN KEY (order_id)    REFERENCES orders(id)  ON DELETE CASCADE,
+    FOREIGN KEY (flower_id)   REFERENCES flowers(id) ON DELETE CASCADE,
+    FOREIGN KEY (variety_id)  REFERENCES flower_varieties(id) ON DELETE CASCADE
 );
 
 -- ─── SEED: ADMIN USER ─────────────────────────────────────
@@ -111,7 +147,9 @@ INSERT INTO flowers (name, emoji, price, meaning, tag, stock) VALUES
 ('Lily',      '💐', 15.00, 'Purity & Grace',     'New',         100),
 ('Sunflower', '🌻',  8.00, 'Warmth & Positivity','Cheerful',    100),
 ('Peony',     '🌸', 18.00, 'Prosperity & Beauty','Luxury',      100),
-('Orchid',    '🪷', 20.00, 'Elegance & Strength','Premium',     100)
+('Orchid',    '🪷', 20.00, 'Elegance & Strength','Premium',     100),
+('Daisy',     '🌼',  7.00, 'Innocence & New Life','Fresh',      100),
+('Lavender',  '💜', 11.00, 'Calm & Serenity',    'Relaxing',   100)
 ON DUPLICATE KEY UPDATE id = id;
 
 -- ─── FLOWER VARIETY ────────────────────────────────────────

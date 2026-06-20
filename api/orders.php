@@ -50,12 +50,15 @@ if ($action === 'place') {
     $stmt = $conn->prepare(
         'SELECT 
             c.flower_id,
+            c.variety_id,
             c.quantity,
             f.name,
-            f.price,
-            f.stock
+            v.variety_name,
+            v.price,
+            v.stock
          FROM cart c
          INNER JOIN flowers f ON f.id = c.flower_id
+         INNER JOIN flower_varieties v ON v.id = c.variety_id
          WHERE c.user_id = ?'
     );
 
@@ -129,16 +132,18 @@ if ($action === 'place') {
                 (
                     order_id,
                     flower_id,
+                    variety_id,
                     quantity,
                     price
                 )
-                VALUES (?, ?, ?, ?)'
+                VALUES (?, ?, ?, ?, ?)'
             );
 
             $orderItem->bind_param(
-                'iiid',
+                'iiiid',
                 $orderId,
                 $item['flower_id'],
+                $item['variety_id'],
                 $item['quantity'],
                 $item['price']
             );
@@ -147,19 +152,33 @@ if ($action === 'place') {
 
             // Reserve stock immediately after order creation.
             // For a student project, this is simple and practical.
-            $stock = $conn->prepare(
-                'UPDATE flowers
+            $stockVariety = $conn->prepare(
+                'UPDATE flower_varieties
                  SET stock = stock - ?
                  WHERE id = ?'
             );
 
-            $stock->bind_param(
+            $stockVariety->bind_param(
+                'ii',
+                $item['quantity'],
+                $item['variety_id']
+            );
+
+            $stockVariety->execute();
+
+            $stockFlower = $conn->prepare(
+                'UPDATE flowers
+                 SET stock = GREATEST(stock - ?, 0)
+                 WHERE id = ?'
+            );
+
+            $stockFlower->bind_param(
                 'ii',
                 $item['quantity'],
                 $item['flower_id']
             );
 
-            $stock->execute();
+            $stockFlower->execute();
         }
 
         $clear = $conn->prepare('DELETE FROM cart WHERE user_id = ?');
@@ -219,12 +238,15 @@ if ($action === 'mine') {
         $items = $conn->prepare(
             'SELECT 
                 oi.flower_id,
+                oi.variety_id,
                 oi.quantity,
                 oi.price,
                 f.name,
-                f.emoji
+                f.emoji,
+                v.variety_name
              FROM order_items oi
              INNER JOIN flowers f ON f.id = oi.flower_id
+             INNER JOIN flower_varieties v ON v.id = oi.variety_id
              WHERE oi.order_id = ?'
         );
 
