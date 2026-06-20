@@ -13,7 +13,7 @@ define('PAYHERE_MERCHANT_SECRET', 'ABCD');
 // For normal localhost testing:
 // return_url works, but notify_url will NOT work properly from PayHere.
 // For real payment status update, use a public URL or tunnel.
-define('BLOOMIFY_PUBLIC_URL', 'http://localhost/bloomify_FINAL/bloomify_final');
+define('BLOOMIFY_PUBLIC_URL', 'http://localhost/bloomify_FINAL/Bloomify');
 
 define('PAYHERE_CURRENCY', 'LKR');
 

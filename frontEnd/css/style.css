@@ -1394,3 +1394,70 @@ footer{
     padding:26px;
   }
 }
+.category-tabs{
+  display:flex;
+  gap:15px;
+  justify-content:center;
+  margin:20px 0;
+  flex-wrap:wrap;
+}
+
+.category-tabs button{
+  padding:12px 25px;
+  border:none;
+  border-radius:10px;
+  background:#f2f2f2;
+  cursor:pointer;
+  font-size:16px;
+  font-weight:600;
+}
+
+.category-tabs button.active{
+  background:#c84f73;
+  color:white;
+}
+
+.category-tabs button:hover{
+  background:#e8b5c5;
+}
+.sub-category-cards{
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: -5px auto 30px auto;
+  padding: 0 7%;
+  max-width: 1200px;
+}
+
+.sub-card{
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 10px 22px;
+  text-align: center;
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.sub-card:hover,
+.sub-card.active{
+  transform: translateY(-2px);
+  border-color: var(--primary);
+  background: var(--surface-soft);
+  box-shadow: 0 8px 20px rgba(200, 79, 115, 0.15);
+}
+
+.sub-card h3{
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+}
+
+.sub-card:hover h3,
+.sub-card.active h3 {
+  color: var(--primary);
+}
