@@ -111,6 +111,48 @@ function flowerImage(product) {
     : 'images/flowers/default.jpg';
 }
 
+function varietyImage(product, variety) {
+  const key = `${String(product.name || '').toLowerCase()}:${String(variety.name || '').toLowerCase()}`;
+  const images = {
+    'rose:red': 'images/flowers/redRose.jpeg',
+    'rose:pink': 'images/flowers/pinkRose.jpeg',
+    'rose:yellow': 'images/flowers/yellowRose.jpeg',
+    'rose:white': 'images/flowers/WhiteRose.jpeg',
+    'tulip:pink': 'images/flowers/pinkTulip.jpeg',
+    'tulip:yellow': 'images/flowers/YellowTulip.jpeg',
+    'tulip:red': 'images/flowers/RedTulip.jpeg',
+    'tulip:purple': 'images/flowers/Real Touch Tulips - Lt  Purple _ Long.jpeg',
+    'lily:pink': 'images/flowers/PinkLily.jpeg',
+    'lily:white': 'images/flowers/whiteLily.jpeg',
+    'lily:orange': 'images/flowers/OrangeLily.jpeg',
+    'lily:yellow': 'images/flowers/lily.jpg',
+    'sunflower:yellow': 'images/flowers/YellowSunflower.jpeg',
+    'sunflower:classic yellow': 'images/flowers/YellowSunflower.jpeg',
+    'sunflower:golden orange': 'images/flowers/YellowSunflower.jpeg',
+    'sunflower:burgundy': 'images/flowers/BurgundySunflower.jpeg',
+    'sunflower:deep red': 'images/flowers/BurgundySunflower.jpeg',
+    'peony:pink': 'images/flowers/PinkPeony.jpeg',
+    'peony:soft pink': 'images/flowers/PinkPeony.jpeg',
+    'peony:dark pink': 'images/flowers/PinkPeony.jpeg',
+    'peony:white': 'images/flowers/WhitePeony.jpeg',
+    'peony:coral': 'images/flowers/CoralPeony.jpeg',
+    'orchid:purple': 'images/flowers/PurpleOrchid.jpeg',
+    'orchid:white': 'images/flowers/WhiteOrchid.jpeg',
+    'orchid:pink': 'images/flowers/PinkOrchid.jpeg',
+    'orchid:blue': 'images/flowers/orchid.jpg',
+    'daisy:white': 'images/flowers/WhiteDaisy.jpeg',
+    'daisy:yellow': 'images/flowers/daisy.jpg',
+    'daisy:pink': 'images/flowers/PinkDaisy.jpeg',
+    'daisy:purple': 'images/flowers/daisy.jpg',
+    'lavender:purple': 'images/flowers/PurpleLavender.jpeg',
+    'lavender:blue': 'images/flowers/BlueLavender.jpeg',
+    'lavender:white': 'images/flowers/lavender.jpg',
+    'lavender:pink': 'images/flowers/lavender.jpg'
+  };
+
+  return images[key] || flowerImage(product);
+}
+
 function toggleFlowerExpand(flowerId) {
   expandedFlowerId = expandedFlowerId === flowerId ? null : flowerId;
   renderFlowerOptions(Array.from(flowersById.values()));
@@ -159,7 +201,12 @@ function renderFlowerOptions(products) {
               onclick="addVariety(${product.id}, ${v.id})"
               ${v.stock <= 0 ? 'disabled' : ''}
             >
-              <span class="variety-swatch" style="background:${escapeHtml(v.color || '#ccc')}"></span>
+              <img 
+                class="variety-thumb" 
+                src="${escapeHtml(varietyImage(product, v))}" 
+                alt="${escapeHtml(`${product.name} ${v.name}`)}"
+                onerror="this.src='${escapeHtml(flowerImage(product))}';"
+              >
               <span class="variety-row-name">${escapeHtml(v.name)}</span>
               <span class="variety-row-stock">${v.stock} left</span>
               <span class="variety-row-price">${money(v.price)}</span>
@@ -180,7 +227,7 @@ function syncBouquetWithLatestProducts(products) {
         ...v,
         flowerId: product.id,
         flowerName: product.name,
-        image: product.image
+        image: varietyImage(product, v)
       });
     });
   });
@@ -295,7 +342,7 @@ function addVariety(flowerId, varietyId) {
     flowerName: product.name,
     varietyName: variety.name,
     color: variety.color,
-    image: product.image,
+    image: varietyImage(product, variety),
     price: Number(variety.price),
     stock: Number(variety.stock),
     quantity: 0

@@ -8,7 +8,7 @@ define('PAYHERE_MODE', 'sandbox');
 
 // Replace these with your PayHere Sandbox details.
 define('PAYHERE_MERCHANT_ID', '1');
-define('PAYHERE_MERCHANT_SECRET', 'ABCD');
+define('PAYHERE_MERCHANT_SECRET', '2');
 
 // For normal localhost testing:
 // return_url works, but notify_url will NOT work properly from PayHere.

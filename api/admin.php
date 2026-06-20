@@ -10,6 +10,18 @@ if ($action === 'stats') {
     $products = (int)$conn->query('SELECT COUNT(*) AS c FROM flowers')->fetch_assoc()['c'];
     $customers = (int)$conn->query("SELECT COUNT(*) AS c FROM users WHERE role = 'customer'")->fetch_assoc()['c'];
     $revenue = (float)$conn->query('SELECT COALESCE(SUM(total), 0) AS t FROM orders')->fetch_assoc()['t'];
+    $messages = 0;
+
+    $messageTable = $conn->query(
+        "SELECT COUNT(*) AS c
+         FROM INFORMATION_SCHEMA.TABLES
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = 'contact_messages'"
+    )->fetch_assoc();
+
+    if ((int)$messageTable['c'] > 0) {
+        $messages = (int)$conn->query('SELECT COUNT(*) AS c FROM contact_messages')->fetch_assoc()['c'];
+    }
 
     json_response([
         'success' => true,
@@ -17,7 +29,8 @@ if ($action === 'stats') {
             'orders' => $orders,
             'products' => $products,
             'customers' => $customers,
-            'revenue' => round($revenue, 2)
+            'revenue' => round($revenue, 2),
+            'messages' => $messages
         ]
     ]);
 }

@@ -129,48 +129,41 @@ async function refreshNavbar() {
 // NOTE: varietyId is now required — every flower has at least one variety
 // (see flower_varieties table), so a flower id alone is no longer enough
 // to price or stock-check the item.
-async function addToCart(button, flowerId, varietyId, quantity = 1) {
-  const originalText = button ? button.innerHTML : '';
+async function addToCart(event = null, flowerId, varietyId = null, quantity = 1) {
+  if (event && event.preventDefault) {
+    event.preventDefault();
+  }
 
   try {
-    if (button) {
-      button.disabled = true;
-      button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding';
-    }
+    const payload = {
+      flower_id: Number(flowerId),
+      variety_id: varietyId !== null ? Number(varietyId) : null,
+      quantity: Number(quantity || 1)
+    };
 
-    const { response, data } = await apiFetch('/cart.php?action=add', {
+    const { data } = await apiFetch('/cart.php?action=add', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ flower_id: flowerId, variety_id: varietyId, quantity })
+      body: JSON.stringify(payload)
     });
 
-    if (response.status === 401) {
-      showToast('Please login first.', 'error');
-      setTimeout(() => window.location.href = 'login.html', 700);
-      return false;
-    }
-
     if (!data.success) {
-      showToast(data.message || 'Failed to add to cart.', 'error');
+      showToast(data.message || 'Could not add to cart.', 'error');
+      console.error('Cart add failed:', data);
       return false;
     }
 
-    updateCartCount(data.count || 0);
-    showToast('Added to cart');
+    showToast(data.message || 'Added to cart.', 'success');
 
-    if (button) {
-      button.innerHTML = '<i class="fa-solid fa-check"></i> Added';
-      setTimeout(() => button.innerHTML = originalText, 900);
+    if (typeof updateCartCount === 'function') {
+      await updateCartCount();
     }
 
     return true;
-
   } catch (error) {
-    showToast('Network error', 'error');
+    console.error('Add to cart error:', error);
+    showToast('Could not add to cart.', 'error');
     return false;
-
-  } finally {
-    if (button) button.disabled = false;
   }
 }
 
