@@ -16,7 +16,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (preg_match('/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/', $origin)) {
+if (preg_match('/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/', $origin) || $origin === 'null') {
     header("Access-Control-Allow-Origin: $origin");
     header('Access-Control-Allow-Credentials: true');
 }

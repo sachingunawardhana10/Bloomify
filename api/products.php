@@ -48,25 +48,49 @@ try {
 
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
-        $sql = "
-            SELECT
-                f.id,
-                f.name,
-                f.emoji,
-                $imageSelect,
-                f.meaning,
-                f.tag,
-                $subcategorySelect,
-                v.id    AS variety_id,
-                v.variety_name,
-                v.color_hex,
-                v.price AS variety_price,
-                v.stock AS variety_stock
-            FROM flowers f
-            LEFT JOIN flower_varieties v ON v.flower_id = f.id
-            $whereSql
-            ORDER BY f.id ASC, v.price ASC
-        ";
+        $varietiesTableExists = false;
+        $checkVarieties = $conn->query("SHOW TABLES LIKE 'flower_varieties'");
+        if ($checkVarieties && $checkVarieties->num_rows > 0) {
+            $varietiesTableExists = true;
+        }
+
+        if ($varietiesTableExists) {
+            $sql = "
+                SELECT
+                    f.id,
+                    f.name,
+                    f.emoji,
+                    $imageSelect,
+                    f.meaning,
+                    f.tag,
+                    $subcategorySelect,
+                    v.id    AS variety_id,
+                    v.variety_name,
+                    v.color_hex,
+                    v.price AS variety_price,
+                    v.stock AS variety_stock
+                FROM flowers f
+                LEFT JOIN flower_varieties v ON v.flower_id = f.id
+                $whereSql
+                ORDER BY f.id ASC, v.price ASC
+            ";
+        } else {
+            $sql = "
+                SELECT
+                    f.id,
+                    f.name,
+                    f.emoji,
+                    $imageSelect,
+                    f.meaning,
+                    f.tag,
+                    $subcategorySelect,
+                    f.price,
+                    f.stock
+                FROM flowers f
+                $whereSql
+                ORDER BY f.id ASC
+            ";
+        }
 
         if ($where) {
             $stmt = $conn->prepare($sql);
@@ -101,13 +125,23 @@ try {
                 ];
             }
 
-            if ($row['variety_id'] !== null) {
+            if ($varietiesTableExists) {
+                if ($row['variety_id'] !== null) {
+                    $flowers[$id]['varieties'][] = [
+                        'id'    => (int)$row['variety_id'],
+                        'name'  => $row['variety_name'],
+                        'color' => $row['color_hex'],
+                        'price' => (float)$row['variety_price'],
+                        'stock' => (int)$row['variety_stock']
+                    ];
+                }
+            } else {
                 $flowers[$id]['varieties'][] = [
-                    'id'    => (int)$row['variety_id'],
-                    'name'  => $row['variety_name'],
-                    'color' => $row['color_hex'],
-                    'price' => (float)$row['variety_price'],
-                    'stock' => (int)$row['variety_stock']
+                    'id'    => 0,
+                    'name'  => 'Standard',
+                    'color' => '#FFFFFF',
+                    'price' => (float)$row['price'],
+                    'stock' => (int)$row['stock']
                 ];
             }
         }
