@@ -113,3 +113,26 @@ INSERT INTO flowers (name, emoji, price, meaning, tag, stock) VALUES
 ('Peony',     '🌸', 18.00, 'Prosperity & Beauty','Luxury',      100),
 ('Orchid',    '🪷', 20.00, 'Elegance & Strength','Premium',     100)
 ON DUPLICATE KEY UPDATE id = id;
+
+USE bloomify;
+
+CREATE TABLE IF NOT EXISTS payments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    payment_gateway VARCHAR(50) DEFAULT 'PayHere',
+    gateway_payment_id VARCHAR(100) NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(10) DEFAULT 'LKR',
+    method VARCHAR(50) DEFAULT 'MasterCard',
+    status_code VARCHAR(50) NULL,
+    status_message VARCHAR(255) NULL,
+    md5sig VARCHAR(255) NULL,
+    raw_payload TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_payments_order
+        FOREIGN KEY (order_id)
+        REFERENCES orders(id)
+        ON DELETE CASCADE
+);
