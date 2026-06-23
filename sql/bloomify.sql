@@ -16,8 +16,12 @@ CREATE TABLE IF NOT EXISTS users (
     email      VARCHAR(150)  NOT NULL UNIQUE,
     password   VARCHAR(255)  NOT NULL,
     role       ENUM('customer','admin') DEFAULT 'customer',
+    is_active  TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER role;
 
 -- ─── FLOWERS ──────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS flowers (
@@ -117,32 +121,32 @@ ON DUPLICATE KEY UPDATE id = id;
 -- ─── FLOWER VARIETY ────────────────────────────────────────
 USE bloomify;
 -- 1 = Rose
-INSERT INTO flower_varieties (flower_id, variety_name, color_hex, price, stock) VALUES
+INSERT INTO flower_varieties (flower_id, name, color_hex, price, stock) VALUES
   (1, 'Red',    '#C0392B', 12.00, 25),
   (1, 'Pink',   '#F1A7B7', 13.00, 20),
   (1, 'Yellow', '#F4D35E', 11.00, 15),
   (1, 'White',  '#FAFAF5', 14.00, 10);
 
 -- 2 = Tulip
-INSERT INTO flower_varieties (flower_id, variety_name, color_hex, price, stock) VALUES
+INSERT INTO flower_varieties (flower_id, name, color_hex, price, stock) VALUES
   (2, 'Pink',   '#F3B6CC', 10.00, 20),
   (2, 'Yellow', '#F6E27A', 9.00,  15),
   (2, 'Red',    '#C8413B', 11.00, 10),
   (2, 'Purple', '#9B7EBD', 12.00, 8);
 
 -- 3 = Lily
-INSERT INTO flower_varieties (flower_id, variety_name, color_hex, price, stock) VALUES
+INSERT INTO flower_varieties (flower_id, name, color_hex, price, stock) VALUES
   (3, 'Pink',   '#E8AFC2', 15.00, 15),
   (3, 'White',  '#FAFAF5', 16.00, 10),
   (3, 'Orange', '#E8965A', 17.00, 8);
 
 -- 4 = Sunflower
-INSERT INTO flower_varieties (flower_id, variety_name, color_hex, price, stock) VALUES
+INSERT INTO flower_varieties (flower_id, name, color_hex, price, stock) VALUES
   (4, 'Yellow',   '#F2C336', 8.00,  35),
   (4, 'Burgundy', '#7B3F3F', 10.00, 12);
 
 -- 5 = Peony
-INSERT INTO flower_varieties (flower_id, variety_name, color_hex, price, stock) VALUES
+INSERT INTO flower_varieties (flower_id, name, color_hex, price, stock) VALUES
   (5, 'Pink',  '#EFB3C4', 18.00, 12),
   (5, 'White', '#FAFAF5', 19.00, 8),
   (5, 'Coral', '#E98A72', 20.00, 6);

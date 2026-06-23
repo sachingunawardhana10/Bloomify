@@ -330,7 +330,7 @@ async function loadUsers(silent = false) {
 
     if (!data.success) {
       if (!silent) {
-        body.innerHTML = '<tr><td colspan="5" class="empty-row">Could not load users.</td></tr>';
+        body.innerHTML = '<tr><td colspan="7" class="empty-row">Could not load users.</td></tr>';
       }
       return;
     }
@@ -345,7 +345,7 @@ async function loadUsers(silent = false) {
     lastUsersSignature = signature;
 
     if (!users.length) {
-      body.innerHTML = '<tr><td colspan="5" class="empty-row">No users found.</td></tr>';
+      body.innerHTML = '<tr><td colspan="7" class="empty-row">No users found.</td></tr>';
       return;
     }
 
@@ -355,7 +355,22 @@ async function loadUsers(silent = false) {
         <td>${escapeHtml(user.name)}</td>
         <td>${escapeHtml(user.email)}</td>
         <td><span class="role-pill">${escapeHtml(user.role)}</span></td>
+        <td>
+          <span class="role-pill">
+            ${Number(user.is_active) === 1 ? 'Active' : 'Deactivated'}
+          </span>
+        </td>
         <td>${escapeHtml(user.created_at)}</td>
+        <td>
+          ${user.role === 'customer' ? `
+            <button
+              class="small-btn ${Number(user.is_active) === 1 ? 'danger' : ''}"
+              onclick="updateUserStatus(${user.id}, ${Number(user.is_active) === 1 ? 0 : 1})"
+            >
+              ${Number(user.is_active) === 1 ? 'Deactivate' : 'Activate'}
+            </button>
+          ` : '<small>Admin account</small>'}
+        </td>
       </tr>
     `).join('');
   } catch (error) {
@@ -363,8 +378,31 @@ async function loadUsers(silent = false) {
 
     if (!silent) {
       document.getElementById('customers-body').innerHTML =
-        '<tr><td colspan="5" class="empty-row">Failed to load users.</td></tr>';
+        '<tr><td colspan="7" class="empty-row">Failed to load users.</td></tr>';
     }
+  }
+}
+
+async function updateUserStatus(id, isActive) {
+  const action = isActive ? 'activate' : 'deactivate';
+
+  if (!confirm(`Are you sure you want to ${action} this customer?`)) {
+    return;
+  }
+
+  const { data } = await apiFetch('/admin.php?action=update-user-status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, is_active: isActive })
+  });
+
+  showToast(data.message || 'Customer updated.', data.success ? 'success' : 'error');
+
+  if (data.success) {
+    await Promise.allSettled([
+      loadUsers(false),
+      loadStats(false)
+    ]);
   }
 }
 

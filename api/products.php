@@ -143,10 +143,7 @@ try {
                 $varieties[] = $v;
             }
 
-            /*
-              If no varieties exist, create one virtual default variety.
-              This prevents catalog/customize pages from crashing.
-            */
+            
             if (empty($varieties)) {
                 $varieties[] = [
                     'id' => $flowerId,

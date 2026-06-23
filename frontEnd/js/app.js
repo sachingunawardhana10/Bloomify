@@ -1,6 +1,3 @@
-// ======================
-// API FETCH WRAPPER
-// ======================
 async function apiFetch(endpoint, options = {}) {
   const settings = {
     credentials: 'include',
@@ -30,9 +27,6 @@ async function apiFetch(endpoint, options = {}) {
   return { response, data };
 }
 
-// ======================
-// HELPERS
-// ======================
 function money(value) {
   return `Rs. ${Number(value || 0).toLocaleString('en-LK', {
     minimumFractionDigits: 2,
@@ -49,16 +43,24 @@ function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
-function updateCartCount(count) {
+async function updateCartCount(count = null) {
+  let finalCount = Number(count || 0);
+
+  if (count === null || count === undefined) {
+    try {
+      const { data } = await apiFetch('/cart.php?action=count');
+      finalCount = data.success ? Number(data.count || 0) : 0;
+    } catch (error) {
+      finalCount = 0;
+    }
+  }
+
   document.querySelectorAll('#cart-count').forEach(el => {
-    el.textContent = count;
-    el.style.display = count > 0 ? 'inline-flex' : 'none';
+    el.textContent = finalCount;
+    el.style.display = finalCount > 0 ? 'inline-flex' : 'none';
   });
 }
 
-// ======================
-// TOAST
-// ======================
 function showToast(message, type = 'success') {
   let container = document.getElementById('toast-container');
 
@@ -77,9 +79,6 @@ function showToast(message, type = 'success') {
   setTimeout(() => toast.remove(), 2800);
 }
 
-// ======================
-// SESSION CHECK
-// ======================
 async function checkSession() {
   try {
     const { data } = await apiFetch('/auth.php?action=check');
@@ -89,9 +88,6 @@ async function checkSession() {
   }
 }
 
-// ======================
-// NAVBAR UPDATE
-// ======================
 async function refreshNavbar() {
   const session = await checkSession();
 
@@ -104,41 +100,64 @@ async function refreshNavbar() {
     if (loginLink) loginLink.style.display = 'none';
     if (userBox) userBox.style.display = 'flex';
     if (userName) userName.textContent = session.user.name;
-    if (adminLink) adminLink.style.display = session.user.role === 'admin' ? 'list-item' : 'none';
-
-    try {
-      const { data } = await apiFetch('/cart.php?action=count');
-      updateCartCount(data.success ? data.count : 0);
-    } catch {
-      updateCartCount(0);
+    if (adminLink) {
+      adminLink.style.display = session.user.role === 'admin' ? 'list-item' : 'none';
     }
 
+    await updateCartCount();
   } else {
     if (loginLink) loginLink.style.display = 'list-item';
     if (userBox) userBox.style.display = 'none';
     if (adminLink) adminLink.style.display = 'none';
-    updateCartCount(0);
+
+    await updateCartCount(0);
   }
 
   return session;
 }
 
-// ======================
-// ADD TO CART
-// ======================
-// NOTE: varietyId is now required — every flower has at least one variety
-// (see flower_varieties table), so a flower id alone is no longer enough
-// to price or stock-check the item.
-async function addToCart(event = null, flowerId, varietyId = null, quantity = 1) {
-  if (event && event.preventDefault) {
-    event.preventDefault();
+async function addToCart(eventOrFlowerId = null, flowerId = null, varietyId = null, quantity = 1) {
+  
+
+  let realFlowerId = flowerId;
+  let realVarietyId = varietyId;
+  let realQuantity = quantity;
+
+  if (eventOrFlowerId && typeof eventOrFlowerId.preventDefault === 'function') {
+    eventOrFlowerId.preventDefault();
+  }
+
+  if (
+    typeof eventOrFlowerId === 'number' ||
+    typeof eventOrFlowerId === 'string'
+  ) {
+    realFlowerId = eventOrFlowerId;
+    realVarietyId = flowerId ?? null;
+    realQuantity = varietyId ?? 1;
+  }
+
+  realFlowerId = Number(realFlowerId);
+  realQuantity = Number(realQuantity || 1);
+
+  if (!realFlowerId || realFlowerId <= 0) {
+    console.error('Invalid flower ID:', {
+      eventOrFlowerId,
+      flowerId,
+      varietyId,
+      quantity
+    });
+
+    showToast('Invalid flower item.', 'error');
+    return false;
   }
 
   try {
     const payload = {
-      flower_id: Number(flowerId),
-      variety_id: varietyId !== null ? Number(varietyId) : null,
-      quantity: Number(quantity || 1)
+      flower_id: realFlowerId,
+      variety_id: realVarietyId !== null && realVarietyId !== undefined
+        ? Number(realVarietyId)
+        : null,
+      quantity: realQuantity
     };
 
     const { data } = await apiFetch('/cart.php?action=add', {
@@ -148,16 +167,14 @@ async function addToCart(event = null, flowerId, varietyId = null, quantity = 1)
     });
 
     if (!data.success) {
-      showToast(data.message || 'Could not add to cart.', 'error');
       console.error('Cart add failed:', data);
+      showToast(data.message || 'Could not add to cart.', 'error');
       return false;
     }
 
     showToast(data.message || 'Added to cart.', 'success');
 
-    if (typeof updateCartCount === 'function') {
-      await updateCartCount();
-    }
+    await updateCartCount();
 
     return true;
   } catch (error) {
@@ -167,9 +184,6 @@ async function addToCart(event = null, flowerId, varietyId = null, quantity = 1)
   }
 }
 
-// ======================
-// LOGOUT
-// ======================
 async function handleLogout() {
   try {
     await apiFetch('/auth.php?action=logout');
@@ -178,7 +192,57 @@ async function handleLogout() {
   }
 }
 
-// ======================
-// INIT NAVBAR
-// ======================
-document.addEventListener('DOMContentLoaded', refreshNavbar);
+// Carousel functionality
+let currentSlideIndex = 1;
+let carouselInterval = null;
+
+function showSlide(n) {
+  const slides = document.querySelectorAll('.carousel-slide');
+  const dots = document.querySelectorAll('.dot');
+
+  if (n > slides.length) {
+    currentSlideIndex = 1;
+  }
+  if (n < 1) {
+    currentSlideIndex = slides.length;
+  }
+
+  slides.forEach(slide => slide.classList.remove('active'));
+  dots.forEach(dot => dot.classList.remove('active'));
+
+  if (slides[currentSlideIndex - 1]) {
+    slides[currentSlideIndex - 1].classList.add('active');
+  }
+  if (dots[currentSlideIndex - 1]) {
+    dots[currentSlideIndex - 1].classList.add('active');
+  }
+}
+
+function currentSlide(n) {
+  clearInterval(carouselInterval);
+  currentSlideIndex = n;
+  showSlide(currentSlideIndex);
+  startCarousel();
+}
+
+function nextSlide() {
+  currentSlideIndex++;
+  showSlide(currentSlideIndex);
+}
+
+function startCarousel() {
+  carouselInterval = setInterval(() => {
+    nextSlide();
+  }, 4000); // Change slide every 4 seconds
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  refreshNavbar();
+  
+  // Initialize carousel if it exists
+  const carousel = document.querySelector('.carousel');
+  if (carousel) {
+    showSlide(currentSlideIndex);
+    startCarousel();
+  }
+});

@@ -4,6 +4,31 @@ require_once 'db.php';
 $action = $_GET['action'] ?? '';
 $data = request_data();
 
+function auth_column_exists(mysqli $conn, string $table, string $column): bool {
+    $stmt = $conn->prepare(
+        "SELECT COUNT(*) AS count_value
+         FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = ?
+           AND COLUMN_NAME = ?"
+    );
+
+    $stmt->bind_param('ss', $table, $column);
+    $stmt->execute();
+
+    $row = $stmt->get_result()->fetch_assoc();
+
+    return (int)$row['count_value'] > 0;
+}
+
+function ensure_auth_user_status_column(mysqli $conn): void {
+    if (!auth_column_exists($conn, 'users', 'is_active')) {
+        $conn->query('ALTER TABLE users ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER role');
+    }
+}
+
+ensure_auth_user_status_column($conn);
+
 if ($action === 'login') {
     $email = strtolower(trim($data['email'] ?? ''));
     $password = (string)($data['password'] ?? '');
@@ -12,7 +37,7 @@ if ($action === 'login') {
         json_response(['success' => false, 'message' => 'Email and password are required.'], 422);
     }
 
-    $stmt = $conn->prepare('SELECT id, name, email, password, role FROM users WHERE email = ? LIMIT 1');
+    $stmt = $conn->prepare('SELECT id, name, email, password, role, is_active FROM users WHERE email = ? LIMIT 1');
     $stmt->bind_param('s', $email);
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
@@ -27,6 +52,10 @@ if ($action === 'login') {
 
     if (!$valid) {
         json_response(['success' => false, 'message' => 'Invalid email or password.'], 401);
+    }
+
+    if (strtolower($user['role']) === 'customer' && (int)$user['is_active'] !== 1) {
+        json_response(['success' => false, 'message' => 'Your account is deactivated. Please contact Bloomify support.'], 403);
     }
 
     if (!$isHash) {

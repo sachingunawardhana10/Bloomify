@@ -7,17 +7,19 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
+
 <header class="navbar">
   <a href="index.html" class="brand-logo" aria-label="Bloomify home">
     <img src="images/bloomify_logo.png" alt="Bloomify logo">
   </a>
 
-   <nav>
+  <nav>
     <ul>
-      <li><a href="index.html" class="active">Home</a></li>
+      <li><a href="index.html">Home</a></li>
       <li><a href="catalog.html">Flowers</a></li>
-      <li><a href="customize.html">Customize</a></li>
+      <li><a href="customize.html" class="active">Customize</a></li>
       <li><a href="about.html">About</a></li>
       <li><a href="contact.html">Contact</a></li>
       <li id="nav-admin-link" style="display:none;"><a href="admin.html">Admin</a></li>
@@ -43,7 +45,7 @@
 
 <div class="page-header">
   <h1>Build Your Bouquet</h1>
-  <p>Live flower and stock data with real images</p>
+  <p>Choose flowers by colour, quantity, and real stock availability</p>
   <div class="ornament"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
 </div>
 
@@ -76,7 +78,7 @@
 
     <div class="bouquet-total">
       <span>Total</span>
-      <strong id="bouquet-total">$0.00</strong>
+      <strong id="bouquet-total">Rs. 0.00</strong>
     </div>
 
     <button class="btn-order" id="add-bouquet-btn" style="width:100%;margin-top:18px;" disabled onclick="addBouquetToCart()">
@@ -96,54 +98,65 @@
 <script src="js/app.js"></script>
 
 <script>
-// bouquet is now keyed by VARIETY id, not flower id — two colors of the
-// same flower are two different cart lines with their own price/stock.
 const bouquet = new Map();
 const flowersById = new Map();
 
 let lastCustomizeSignature = '';
 let customizeBusy = false;
-let expandedFlowerId = null; // which flower card is currently expanded
+let expandedFlowerId = null;
 
 function flowerImage(product) {
-  return product.image && product.image.trim() !== ''
+  return product && product.image && product.image.trim() !== ''
     ? product.image
     : 'images/flowers/default.jpg';
 }
 
+function safeVarieties(product) {
+  return Array.isArray(product.varieties) ? product.varieties : [];
+}
+
 function varietyImage(product, variety) {
   const key = `${String(product.name || '').toLowerCase()}:${String(variety.name || '').toLowerCase()}`;
+
   const images = {
     'rose:red': 'images/flowers/redRose.jpeg',
     'rose:pink': 'images/flowers/pinkRose.jpeg',
     'rose:yellow': 'images/flowers/yellowRose.jpeg',
     'rose:white': 'images/flowers/WhiteRose.jpeg',
+
+    'tulip:red': 'images/flowers/RedTulip.jpeg',
     'tulip:pink': 'images/flowers/pinkTulip.jpeg',
     'tulip:yellow': 'images/flowers/YellowTulip.jpeg',
-    'tulip:red': 'images/flowers/RedTulip.jpeg',
     'tulip:purple': 'images/flowers/Real Touch Tulips - Lt  Purple _ Long.jpeg',
+    'tulip:white': 'images/flowers/tulip.jpg',
+
     'lily:pink': 'images/flowers/PinkLily.jpeg',
     'lily:white': 'images/flowers/whiteLily.jpeg',
     'lily:orange': 'images/flowers/OrangeLily.jpeg',
     'lily:yellow': 'images/flowers/lily.jpg',
+
     'sunflower:yellow': 'images/flowers/YellowSunflower.jpeg',
     'sunflower:classic yellow': 'images/flowers/YellowSunflower.jpeg',
     'sunflower:golden orange': 'images/flowers/YellowSunflower.jpeg',
     'sunflower:burgundy': 'images/flowers/BurgundySunflower.jpeg',
     'sunflower:deep red': 'images/flowers/BurgundySunflower.jpeg',
+
     'peony:pink': 'images/flowers/PinkPeony.jpeg',
     'peony:soft pink': 'images/flowers/PinkPeony.jpeg',
     'peony:dark pink': 'images/flowers/PinkPeony.jpeg',
     'peony:white': 'images/flowers/WhitePeony.jpeg',
     'peony:coral': 'images/flowers/CoralPeony.jpeg',
+
     'orchid:purple': 'images/flowers/PurpleOrchid.jpeg',
     'orchid:white': 'images/flowers/WhiteOrchid.jpeg',
     'orchid:pink': 'images/flowers/PinkOrchid.jpeg',
     'orchid:blue': 'images/flowers/orchid.jpg',
+
     'daisy:white': 'images/flowers/WhiteDaisy.jpeg',
     'daisy:yellow': 'images/flowers/daisy.jpg',
     'daisy:pink': 'images/flowers/PinkDaisy.jpeg',
     'daisy:purple': 'images/flowers/daisy.jpg',
+
     'lavender:purple': 'images/flowers/PurpleLavender.jpeg',
     'lavender:blue': 'images/flowers/BlueLavender.jpeg',
     'lavender:white': 'images/flowers/lavender.jpg',
@@ -153,14 +166,43 @@ function varietyImage(product, variety) {
   return images[key] || flowerImage(product);
 }
 
+function bouquetKeyForVariety(varietyId) {
+  return `v-${Number(varietyId)}`;
+}
+
+function bouquetKeyForStandard(flowerId) {
+  return `f-${Number(flowerId)}`;
+}
+
+function getTotalStock(product) {
+  const varieties = safeVarieties(product);
+
+  if (varieties.length) {
+    return varieties.reduce((sum, v) => sum + Number(v.stock || 0), 0);
+  }
+
+  return Number(product.stock || 0);
+}
+
+function getLowestPrice(product) {
+  const varieties = safeVarieties(product);
+
+  if (varieties.length) {
+    return Math.min(...varieties.map(v => Number(v.price || 0)));
+  }
+
+  return Number(product.price || 0);
+}
+
 function toggleFlowerExpand(flowerId) {
-  expandedFlowerId = expandedFlowerId === flowerId ? null : flowerId;
+  expandedFlowerId = Number(expandedFlowerId) === Number(flowerId) ? null : Number(flowerId);
   renderFlowerOptions(Array.from(flowersById.values()));
 }
 
 function renderFlowerOptions(products) {
   const options = document.getElementById('flower-options');
-  const availableFlowers = products.filter(product => product.in_stock);
+
+  const availableFlowers = products.filter(product => getTotalStock(product) > 0);
 
   if (!availableFlowers.length) {
     options.innerHTML = `
@@ -172,46 +214,88 @@ function renderFlowerOptions(products) {
   }
 
   options.innerHTML = availableFlowers.map(product => {
-    const isOpen = product.id === expandedFlowerId;
-    const cheapest = Math.min(...product.varieties.map(v => v.price));
+    const isOpen = Number(product.id) === Number(expandedFlowerId);
+    const varieties = safeVarieties(product);
+    const cheapest = getLowestPrice(product);
+    const totalStock = getTotalStock(product);
 
     return `
       <div class="flower-opt-card ${isOpen ? 'open' : ''}">
-        <button class="flower-opt-btn" type="button" onclick="toggleFlowerExpand(${product.id})">
-          <img 
-            class="f-thumb" 
-            src="${escapeHtml(flowerImage(product))}" 
+        <button class="flower-opt-btn" type="button" onclick="toggleFlowerExpand(${Number(product.id)})">
+          <img
+            class="f-thumb"
+            src="${escapeHtml(flowerImage(product))}"
             alt="${escapeHtml(product.name)}"
             onerror="this.src='images/flowers/default.jpg';"
           >
 
           <span class="f-info">
             <span class="f-name">${escapeHtml(product.name)}</span>
-            <span class="f-price">from ${money(cheapest)} • ${product.stock} left</span>
+            <span class="f-price">from ${money(cheapest)} • ${totalStock} left</span>
           </span>
 
           <i class="fa-solid fa-chevron-down f-chevron"></i>
         </button>
 
-        <div class="variety-panel">
-          ${product.varieties.map(v => `
-            <button 
-              type="button" 
-              class="variety-row ${v.stock <= 0 ? 'disabled' : ''}" 
-              onclick="addVariety(${product.id}, ${v.id})"
-              ${v.stock <= 0 ? 'disabled' : ''}
-            >
-              <img 
-                class="variety-thumb" 
-                src="${escapeHtml(varietyImage(product, v))}" 
-                alt="${escapeHtml(`${product.name} ${v.name}`)}"
-                onerror="this.src='${escapeHtml(flowerImage(product))}';"
-              >
-              <span class="variety-row-name">${escapeHtml(v.name)}</span>
-              <span class="variety-row-stock">${v.stock} left</span>
-              <span class="variety-row-price">${money(v.price)}</span>
-            </button>
-          `).join('')}
+        <div class="variety-panel color-choice-panel">
+          ${
+            varieties.length
+              ? varieties.map(v => `
+                  <button
+                    type="button"
+                    class="variety-row color-variety-row ${Number(v.stock || 0) <= 0 ? 'disabled' : ''}"
+                    onclick="addVariety(${Number(product.id)}, ${Number(v.id)})"
+                    ${Number(v.stock || 0) <= 0 ? 'disabled' : ''}
+                  >
+                    <img
+                      class="variety-thumb"
+                      src="${escapeHtml(varietyImage(product, v))}"
+                      alt="${escapeHtml(`${product.name} ${v.name}`)}"
+                      onerror="this.src='${escapeHtml(flowerImage(product))}';"
+                    >
+
+                    <span class="variety-swatch" style="background:${escapeHtml(v.color || '#c84f73')}"></span>
+
+                    <span class="variety-color-info">
+                      <strong>${escapeHtml(v.name)}</strong>
+                      <small>${Number(v.stock || 0)} left</small>
+                    </span>
+
+                    <span class="variety-row-price">${money(v.price)}</span>
+
+                    <span class="variety-add-icon">
+                      <i class="fa-solid fa-plus"></i>
+                    </span>
+                  </button>
+                `).join('')
+              : `
+                <button
+                  type="button"
+                  class="variety-row color-variety-row"
+                  onclick="addStandardFlower(${Number(product.id)})"
+                >
+                  <img
+                    class="variety-thumb"
+                    src="${escapeHtml(flowerImage(product))}"
+                    alt="${escapeHtml(product.name)}"
+                    onerror="this.src='images/flowers/default.jpg';"
+                  >
+
+                  <span class="variety-swatch" style="background:#c84f73"></span>
+
+                  <span class="variety-color-info">
+                    <strong>Standard</strong>
+                    <small>${Number(product.stock || 0)} left</small>
+                  </span>
+
+                  <span class="variety-row-price">${money(product.price)}</span>
+
+                  <span class="variety-add-icon">
+                    <i class="fa-solid fa-plus"></i>
+                  </span>
+                </button>
+              `
+          }
         </div>
       </div>
     `;
@@ -220,12 +304,15 @@ function renderFlowerOptions(products) {
 
 function syncBouquetWithLatestProducts(products) {
   const latestVarietyMap = new Map();
+  const latestFlowerMap = new Map();
 
   products.forEach(product => {
-    product.varieties.forEach(v => {
-      latestVarietyMap.set(v.id, {
+    latestFlowerMap.set(Number(product.id), product);
+
+    safeVarieties(product).forEach(v => {
+      latestVarietyMap.set(Number(v.id), {
         ...v,
-        flowerId: product.id,
+        flowerId: Number(product.id),
         flowerName: product.name,
         image: varietyImage(product, v)
       });
@@ -234,28 +321,50 @@ function syncBouquetWithLatestProducts(products) {
 
   let changed = false;
 
-  for (const [varietyId, item] of bouquet.entries()) {
-    const latest = latestVarietyMap.get(varietyId);
+  for (const [key, item] of bouquet.entries()) {
+    if (item.varietyId !== null) {
+      const latest = latestVarietyMap.get(Number(item.varietyId));
 
-    if (!latest || latest.stock <= 0) {
-      bouquet.delete(varietyId);
-      changed = true;
-      continue;
+      if (!latest || Number(latest.stock || 0) <= 0) {
+        bouquet.delete(key);
+        changed = true;
+        continue;
+      }
+
+      if (Number(item.quantity) > Number(latest.stock)) {
+        item.quantity = Number(latest.stock);
+        changed = true;
+      }
+
+      item.price = Number(latest.price || 0);
+      item.stock = Number(latest.stock || 0);
+      item.flowerName = latest.flowerName;
+      item.varietyName = latest.name;
+      item.color = latest.color;
+      item.image = latest.image;
+
+      bouquet.set(key, item);
+    } else {
+      const latestFlower = latestFlowerMap.get(Number(item.flowerId));
+
+      if (!latestFlower || Number(latestFlower.stock || 0) <= 0) {
+        bouquet.delete(key);
+        changed = true;
+        continue;
+      }
+
+      if (Number(item.quantity) > Number(latestFlower.stock)) {
+        item.quantity = Number(latestFlower.stock);
+        changed = true;
+      }
+
+      item.price = Number(latestFlower.price || 0);
+      item.stock = Number(latestFlower.stock || 0);
+      item.flowerName = latestFlower.name;
+      item.image = flowerImage(latestFlower);
+
+      bouquet.set(key, item);
     }
-
-    if (item.quantity > latest.stock) {
-      item.quantity = latest.stock;
-      changed = true;
-    }
-
-    item.price = Number(latest.price);
-    item.stock = Number(latest.stock);
-    item.flowerName = latest.flowerName;
-    item.varietyName = latest.name;
-    item.color = latest.color;
-    item.image = latest.image;
-
-    bouquet.set(varietyId, item);
   }
 
   if (changed) {
@@ -294,7 +403,7 @@ async function loadFlowersRealtime(firstLoad = false) {
       flowersById.clear();
 
       products.forEach(product => {
-        flowersById.set(product.id, product);
+        flowersById.set(Number(product.id), product);
       });
 
       syncBouquetWithLatestProducts(products);
@@ -307,7 +416,7 @@ async function loadFlowersRealtime(firstLoad = false) {
     if (firstLoad) {
       options.innerHTML = `
         <p style="color:var(--primary);text-align:center;grid-column:1/-1;">
-          Failed to load flowers. Check database connection.
+          Failed to load flowers. Check products API.
         </p>
       `;
     }
@@ -317,50 +426,92 @@ async function loadFlowersRealtime(firstLoad = false) {
 }
 
 function addVariety(flowerId, varietyId) {
-  const product = flowersById.get(flowerId);
+  const product = flowersById.get(Number(flowerId));
 
   if (!product) {
     showToast('This flower is not available anymore.', 'error');
     return;
   }
 
-  const variety = product.varieties.find(v => v.id === varietyId);
+  const variety = safeVarieties(product).find(v => Number(v.id) === Number(varietyId));
 
   if (!variety) {
     showToast('This variety is not available anymore.', 'error');
     return;
   }
 
-  if (variety.stock <= 0) {
+  if (Number(variety.stock || 0) <= 0) {
     showToast(`${product.name} (${variety.name}) is out of stock.`, 'error');
     return;
   }
 
-  const current = bouquet.get(varietyId) || {
-    varietyId,
-    flowerId,
+  const key = bouquetKeyForVariety(variety.id);
+
+  const current = bouquet.get(key) || {
+    key,
+    flowerId: Number(product.id),
+    varietyId: Number(variety.id),
     flowerName: product.name,
     varietyName: variety.name,
     color: variety.color,
     image: varietyImage(product, variety),
-    price: Number(variety.price),
-    stock: Number(variety.stock),
+    price: Number(variety.price || 0),
+    stock: Number(variety.stock || 0),
     quantity: 0
   };
 
-  if (current.quantity >= variety.stock) {
+  if (current.quantity >= Number(variety.stock || 0)) {
     showToast(`${product.name} (${variety.name}) has only ${variety.stock} in stock.`, 'error');
     return;
   }
 
   current.quantity += 1;
-  bouquet.set(varietyId, current);
+  bouquet.set(key, current);
 
   renderBouquet();
 }
 
-function changeBouquetQty(varietyId, amount) {
-  const item = bouquet.get(varietyId);
+function addStandardFlower(flowerId) {
+  const product = flowersById.get(Number(flowerId));
+
+  if (!product) {
+    showToast('This flower is not available anymore.', 'error');
+    return;
+  }
+
+  if (Number(product.stock || 0) <= 0) {
+    showToast(`${product.name} is out of stock.`, 'error');
+    return;
+  }
+
+  const key = bouquetKeyForStandard(product.id);
+
+  const current = bouquet.get(key) || {
+    key,
+    flowerId: Number(product.id),
+    varietyId: null,
+    flowerName: product.name,
+    varietyName: 'Standard',
+    color: '#c84f73',
+    image: flowerImage(product),
+    price: Number(product.price || 0),
+    stock: Number(product.stock || 0),
+    quantity: 0
+  };
+
+  if (current.quantity >= Number(product.stock || 0)) {
+    showToast(`${product.name} has only ${product.stock} in stock.`, 'error');
+    return;
+  }
+
+  current.quantity += 1;
+  bouquet.set(key, current);
+
+  renderBouquet();
+}
+
+function changeBouquetQty(key, amount) {
+  const item = bouquet.get(key);
 
   if (!item) {
     return;
@@ -369,12 +520,12 @@ function changeBouquetQty(varietyId, amount) {
   item.quantity += amount;
 
   if (item.quantity <= 0) {
-    bouquet.delete(varietyId);
+    bouquet.delete(key);
   } else if (item.quantity > item.stock) {
     item.quantity = item.stock;
     showToast(`${item.flowerName} (${item.varietyName}) has only ${item.stock} in stock.`, 'error');
   } else {
-    bouquet.set(varietyId, item);
+    bouquet.set(key, item);
   }
 
   renderBouquet();
@@ -395,7 +546,7 @@ function renderBouquet() {
       </div>
     `;
 
-    totalEl.textContent = '$0.00';
+    totalEl.textContent = money(0);
     button.disabled = true;
     return;
   }
@@ -403,14 +554,14 @@ function renderBouquet() {
   let total = 0;
 
   list.innerHTML = items.map(item => {
-    total += Number(item.price) * Number(item.quantity);
+    total += Number(item.price || 0) * Number(item.quantity || 0);
 
     return `
       <div class="bouquet-item">
         <div class="bouquet-item-main">
-          <img 
-            class="bouquet-thumb" 
-            src="${escapeHtml(item.image || 'images/flowers/default.jpg')}" 
+          <img
+            class="bouquet-thumb"
+            src="${escapeHtml(item.image || 'images/flowers/default.jpg')}"
             alt="${escapeHtml(item.flowerName)}"
             onerror="this.src='images/flowers/default.jpg';"
           >
@@ -422,9 +573,9 @@ function renderBouquet() {
         </div>
 
         <div class="qty-actions">
-          <button onclick="changeBouquetQty(${item.varietyId}, -1)">−</button>
-          <strong>${item.quantity}</strong>
-          <button onclick="changeBouquetQty(${item.varietyId}, 1)">+</button>
+          <button type="button" onclick="changeBouquetQty('${escapeHtml(item.key)}', -1)">−</button>
+          <strong>${Number(item.quantity || 0)}</strong>
+          <button type="button" onclick="changeBouquetQty('${escapeHtml(item.key)}', 1)">+</button>
         </div>
       </div>
     `;
@@ -443,25 +594,50 @@ async function addBouquetToCart() {
     return;
   }
 
+  const items = Array.from(bouquet.values());
+
+  if (!items.length) {
+    showToast('Please select at least one flower colour.', 'error');
+    return;
+  }
+
   const button = document.getElementById('add-bouquet-btn');
 
   button.disabled = true;
   button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding...';
 
   try {
-    for (const item of bouquet.values()) {
-      const ok = await addToCart(null, item.flowerId, item.varietyId, item.quantity);
+    for (const item of items) {
+      const payload = {
+        flower_id: Number(item.flowerId),
+        variety_id: item.varietyId !== null ? Number(item.varietyId) : null,
+        quantity: Number(item.quantity)
+      };
 
-      if (!ok) {
-        throw new Error('Could not add all bouquet items.');
+      const { data } = await apiFetch('/cart.php?action=add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!data.success) {
+        console.error('Cart add failed:', data, payload);
+        throw new Error(data.message || 'Could not add all bouquet items.');
       }
     }
 
-    showToast('Bouquet added to cart.');
+    showToast('Bouquet added to cart.', 'success');
+
+    if (typeof updateCartCount === 'function') {
+      await updateCartCount();
+    }
+
     bouquet.clear();
     renderBouquet();
 
-    setTimeout(() => window.location.href = 'cart.html', 700);
+    setTimeout(() => {
+      window.location.href = 'cart.html';
+    }, 700);
   } catch (error) {
     console.error(error);
     showToast(error.message || 'Failed to add bouquet.', 'error');
@@ -481,5 +657,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 3000);
 });
 </script>
+
 </body>
 </html>

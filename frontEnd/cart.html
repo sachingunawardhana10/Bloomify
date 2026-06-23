@@ -7,7 +7,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
+
 <header class="navbar">
   <a href="index.html" class="brand-logo" aria-label="Bloomify home">
     <img src="images/bloomify_logo.png" alt="Bloomify logo">
@@ -43,11 +45,14 @@
 
 <div class="page-header">
   <h1>Your Cart</h1>
-  <p>Review your flowers before placing your order</p>
-  <div class="ornament"><i class="fa-solid fa-basket-shopping"></i></div>
+  <p>Review your selected flowers before placing your order</p>
+  <div class="ornament">
+    <i class="fa-solid fa-basket-shopping"></i>
+  </div>
 </div>
 
 <main class="cart-container">
+
   <div id="cart-loading" style="text-align:center;padding:60px;color:var(--muted);">
     <i class="fa-solid fa-spinner fa-spin" style="font-size:24px;"></i>
   </div>
@@ -82,7 +87,7 @@
     <div class="cart-summary">
       <div class="cart-summary-row">
         <span>Subtotal</span>
-        <span id="summary-subtotal">$0.00</span>
+        <span id="summary-subtotal">Rs. 0.00</span>
       </div>
 
       <div class="cart-summary-row">
@@ -92,53 +97,66 @@
 
       <div class="cart-summary-total">
         <span>Total</span>
-        <span id="summary-total">$0.00</span>
+        <span id="summary-total">Rs. 0.00</span>
       </div>
 
       <div class="notes-group">
         <label for="payment-method">Payment Method</label>
-        <select id="payment-method" required onchange="toggleCodDetails()">
+        <select id="payment-method" required onchange="togglePaymentHelp()">
           <option value="Cash on Delivery">Cash on Delivery</option>
           <option value="PayHere Online">PayHere Online</option>
         </select>
+        <small id="payment-help" style="display:block;margin-top:8px;color:var(--muted);">
+          Pay with cash when the bouquet is delivered.
+        </small>
       </div>
 
-      <div id="cod-details" class="cod-details">
-        <h3>Cash on Delivery Details</h3>
+      <div id="delivery-details" class="cod-details">
+        <h3>Delivery Details</h3>
 
         <div class="cod-grid">
           <div class="notes-group">
-            <label for="cod-recipient-name">Recipient name</label>
-            <input id="cod-recipient-name" type="text" placeholder="Full name">
+            <label for="recipient-name">Recipient Name</label>
+            <input id="recipient-name" type="text" placeholder="Full name">
           </div>
 
           <div class="notes-group">
-            <label for="cod-phone">Phone number</label>
-            <input id="cod-phone" type="tel" placeholder="07XXXXXXXX">
+            <label for="recipient-phone">Phone Number</label>
+            <input id="recipient-phone" type="tel" placeholder="07XXXXXXXX">
           </div>
         </div>
 
         <div class="notes-group">
-          <label for="cod-address">Delivery address</label>
-          <textarea id="cod-address" placeholder="House number, street, landmarks..."></textarea>
+          <label for="delivery-address">Delivery Address</label>
+          <textarea id="delivery-address" placeholder="House number, street, landmarks..."></textarea>
         </div>
 
         <div class="cod-grid">
           <div class="notes-group">
-            <label for="cod-city">City / area</label>
-            <input id="cod-city" type="text" placeholder="E.g. Colombo">
+            <label for="delivery-city">City / Area</label>
+            <input id="delivery-city" type="text" placeholder="E.g. Negombo">
           </div>
 
           <div class="notes-group">
-            <label for="cod-delivery-time">Preferred delivery time</label>
-            <input id="cod-delivery-time" type="text" placeholder="E.g. Today 4 PM - 6 PM">
+            <label for="delivery-date">Delivery Date</label>
+            <input id="delivery-date" type="date">
           </div>
+        </div>
+
+        <div class="notes-group">
+          <label for="delivery-time">Preferred Delivery Time</label>
+          <select id="delivery-time">
+            <option value="">Select delivery time</option>
+            <option value="Morning 8.00 AM - 11.00 AM">Morning 8.00 AM - 11.00 AM</option>
+            <option value="Afternoon 12.00 PM - 3.00 PM">Afternoon 12.00 PM - 3.00 PM</option>
+            <option value="Evening 4.00 PM - 7.00 PM">Evening 4.00 PM - 7.00 PM</option>
+          </select>
         </div>
       </div>
 
       <div class="notes-group">
-        <label for="cart-notes">Special instructions (optional)</label>
-        <textarea id="cart-notes" placeholder="E.g. gift wrap, birthday message, delivery note..."></textarea>
+        <label for="cart-notes">Special Instructions</label>
+        <textarea id="cart-notes" placeholder="Gift wrap, birthday message, delivery note..."></textarea>
       </div>
 
       <button class="btn-order" style="width:100%;" id="checkout-btn" onclick="checkout()">
@@ -152,14 +170,19 @@
   </div>
 
   <div id="cart-success" class="success-card" style="display:none;">
-    <div class="success-icon"></div>
+    <div class="success-icon">✅</div>
     <h3>Order Placed!</h3>
     <p id="success-details"></p>
 
-    <a href="index.html" class="btn-secondary" style="margin-top:20px;">
+    <a href="my-orders.html" class="btn-primary" style="margin-top:20px;">
+      <i class="fa-solid fa-receipt"></i> View My Orders
+    </a>
+
+    <a href="index.html" class="btn-secondary" style="margin-top:12px;">
       <i class="fa-solid fa-house"></i> Back to Home
     </a>
   </div>
+
 </main>
 
 <footer>
@@ -180,15 +203,27 @@
 let cartItems = [];
 
 function cartImage(item) {
-  return item.image && item.image.trim() !== ''
+  return item && item.image && item.image.trim() !== ''
     ? item.image
     : 'images/flowers/default.jpg';
+}
+
+function getTodayDate() {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 async function loadCart() {
   const loading = document.getElementById('cart-loading');
   const empty = document.getElementById('cart-empty');
   const content = document.getElementById('cart-content');
+
+  loading.style.display = 'block';
+  empty.style.display = 'none';
+  content.style.display = 'none';
 
   try {
     const { response, data } = await apiFetch('/cart.php?action=get');
@@ -197,7 +232,7 @@ async function loadCart() {
 
     if (response.status === 401) {
       empty.innerHTML = `
-        <div class="empty-icon"></div>
+        <div class="empty-icon">🔐</div>
         <h3>Please login first</h3>
         <p>Sign in to view and manage your cart.</p>
         <a href="login.html" class="btn-primary" style="margin-top:20px;">
@@ -209,14 +244,20 @@ async function loadCart() {
       return;
     }
 
-    if (!data.success || !data.items.length) {
+    const items = data.items || data.cart || [];
+
+    if (!data.success || !items.length) {
+      cartItems = [];
       empty.style.display = 'block';
       updateCartCount(0);
       return;
     }
 
-    cartItems = data.items;
-    renderCart(data);
+    cartItems = items;
+    renderCart({
+      ...data,
+      items
+    });
 
     content.style.display = 'block';
   } catch (error) {
@@ -225,7 +266,7 @@ async function loadCart() {
     loading.style.display = 'none';
 
     empty.innerHTML = `
-      <div class="empty-icon"></div>
+      <div class="empty-icon">⚠️</div>
       <h3>Cart failed to load</h3>
       <p>Check API path, database connection and login session.</p>
     `;
@@ -235,167 +276,250 @@ async function loadCart() {
 }
 
 function renderCart(data) {
-  document.getElementById('cart-body').innerHTML = data.items.map(item => `
-    <tr>
-      <td>
-        <div class="cart-product">
-          <img 
-            class="cart-product-img"
-            src="${escapeHtml(cartImage(item))}" 
-            alt="${escapeHtml(item.name)}"
-            onerror="this.src='images/flowers/default.jpg';"
-          >
+  const items = data.items || [];
 
-          <div>
-            <strong>${escapeHtml(item.name)}</strong><br>
-            <small>
-              ${escapeHtml(item.variety_name)} • ${item.stock} in stock
-            </small>
+  document.getElementById('cart-body').innerHTML = items.map(item => {
+    const subtotal = item.subtotal ?? item.line_total ?? (Number(item.price || 0) * Number(item.quantity || 0));
+    const itemName = item.name || item.flower_name || 'Flower';
+    const varietyName = item.variety_name || 'Standard';
+
+    return `
+      <tr>
+        <td>
+          <div class="cart-product">
+            <img 
+              class="cart-product-img"
+              src="${escapeHtml(cartImage(item))}" 
+              alt="${escapeHtml(itemName)}"
+              onerror="this.src='images/flowers/default.jpg';"
+            >
+
+            <div>
+              <strong>${escapeHtml(itemName)}</strong><br>
+              <small>
+                ${escapeHtml(varietyName)} • ${Number(item.stock || 0)} in stock
+              </small>
+            </div>
           </div>
-        </div>
-      </td>
+        </td>
 
-      <td>${money(item.price)}</td>
+        <td>${money(item.price)}</td>
 
-      <td>
-        <div class="qty-ctrl">
-          <button class="qty-btn"
-            onclick="changeQty(${item.flower_id}, ${item.variety_id}, ${item.quantity - 1})">
-            <i class="fa-solid fa-minus"></i>
+        <td>
+          <div class="qty-ctrl">
+            <button class="qty-btn" onclick="changeQty(${Number(item.cart_id)}, ${Number(item.quantity) - 1})">
+              <i class="fa-solid fa-minus"></i>
+            </button>
+
+            <strong>${Number(item.quantity || 0)}</strong>
+
+            <button class="qty-btn" onclick="changeQty(${Number(item.cart_id)}, ${Number(item.quantity) + 1})">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
+        </td>
+
+        <td>${money(subtotal)}</td>
+
+        <td>
+          <button class="remove-item-btn" onclick="removeItem(${Number(item.cart_id)})">
+            <i class="fa-solid fa-trash"></i>
           </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
 
-          <strong>${item.quantity}</strong>
+  const total = Number(data.total || 0);
+  const count = data.count ?? items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
 
-          <button class="qty-btn"
-            onclick="changeQty(${item.flower_id}, ${item.variety_id}, ${item.quantity + 1})">
-            <i class="fa-solid fa-plus"></i>
-          </button>
-        </div>
-      </td>
+  document.getElementById('summary-subtotal').textContent = money(total);
+  document.getElementById('summary-total').textContent = money(total);
 
-      <td>${money(item.subtotal)}</td>
-
-      <td>
-        <button class="remove-item-btn"
-          onclick="removeItem(${item.flower_id}, ${item.variety_id})">
-          <i class="fa-solid fa-trash"></i>
-        </button>
-      </td>
-    </tr>
-  `).join('');
-
-  document.getElementById('summary-subtotal').textContent = money(data.total);
-  document.getElementById('summary-total').textContent = money(data.total);
-
-  updateCartCount(data.count);
+  updateCartCount(count);
 }
 
-async function changeQty(flowerId, varietyId, quantity) {
-  const { data } = await apiFetch('/cart.php?action=update', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      flower_id: flowerId,
-      variety_id: varietyId,
-      quantity: quantity
-    })
-  });
+async function changeQty(cartId, quantity) {
+  if (!cartId || cartId <= 0) {
+    showToast('Cart ID is missing.', 'error');
+    return;
+  }
 
-  if (data.success) {
-    if (!data.items.length) {
-      location.reload();
+  try {
+    const { data } = await apiFetch('/cart.php?action=update', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        cart_id: cartId,
+        quantity: Number(quantity)
+      })
+    });
+
+    if (data.success) {
+      await loadCart();
     } else {
-      cartItems = data.items;
-      renderCart(data);
+      showToast(data.message || 'Could not update quantity.', 'error');
     }
-  } else {
-    showToast(data.message || 'Could not update quantity.', 'error');
+  } catch (error) {
+    console.error(error);
+    showToast('Could not update quantity.', 'error');
   }
 }
 
-async function removeItem(flowerId, varietyId) {
-  const { data } = await apiFetch('/cart.php?action=remove', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      flower_id: flowerId,
-      variety_id: varietyId
-    })
-  });
+async function removeItem(cartId) {
+  if (!cartId || cartId <= 0) {
+    showToast('Cart ID is missing.', 'error');
+    return;
+  }
 
-  if (data.success) {
-    if (!data.items.length) {
-      location.reload();
+  try {
+    const { data } = await apiFetch('/cart.php?action=remove', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        cart_id: cartId
+      })
+    });
+
+    if (data.success) {
+      await loadCart();
     } else {
-      cartItems = data.items;
-      renderCart(data);
+      showToast(data.message || 'Could not remove item.', 'error');
     }
+  } catch (error) {
+    console.error(error);
+    showToast('Could not remove item.', 'error');
+  }
+}
+
+function getDeliveryDetails() {
+  const recipientName = document.getElementById('recipient-name').value.trim();
+  const phone = document.getElementById('recipient-phone').value.trim();
+  const address = document.getElementById('delivery-address').value.trim();
+  const city = document.getElementById('delivery-city').value.trim();
+  const date = document.getElementById('delivery-date').value.trim();
+  const time = document.getElementById('delivery-time').value.trim();
+
+  return {
+    recipient_name: recipientName,
+    recipient_phone: phone,
+    phone: phone,
+    delivery_address: address,
+    address: address,
+    delivery_area: city,
+    city: city,
+    delivery_date: date,
+    delivery_time: time
+  };
+}
+
+function validateDeliveryDetails(details) {
+  if (!details.recipient_name) return 'Recipient name';
+  if (!details.recipient_phone) return 'Phone number';
+  if (!details.delivery_address) return 'Delivery address';
+  if (!details.delivery_area) return 'City / area';
+  if (!details.delivery_date) return 'Delivery date';
+  if (!details.delivery_time) return 'Delivery time';
+
+  if (details.delivery_date < getTodayDate()) {
+    return 'Valid future delivery date';
+  }
+
+  return '';
+}
+
+function togglePaymentHelp() {
+  const paymentMethod = document.getElementById('payment-method').value;
+  const help = document.getElementById('payment-help');
+
+  if (paymentMethod === 'PayHere Online') {
+    help.textContent = 'Pay using the Bloomify demo payment page / PayHere sandbox flow.';
   } else {
-    showToast(data.message || 'Could not remove item.', 'error');
+    help.textContent = 'Pay with cash when the bouquet is delivered.';
   }
 }
 
 async function checkout() {
   if (!cartItems.length) {
-    return showToast('Cart is empty.', 'error');
+    showToast('Cart is empty.', 'error');
+    return;
   }
 
   const button = document.getElementById('checkout-btn');
   const notes = document.getElementById('cart-notes').value.trim();
   const paymentMethod = document.getElementById('payment-method').value;
-  const codDetails = getCodDetails();
+  const deliveryDetails = getDeliveryDetails();
 
   if (!paymentMethod) {
-    return showToast('Please select a payment method.', 'error');
+    showToast('Please select a payment method.', 'error');
+    return;
   }
 
-  if (paymentMethod === 'Cash on Delivery') {
-    const missingField = validateCodDetails(codDetails);
+  const missingField = validateDeliveryDetails(deliveryDetails);
 
-    if (missingField) {
-      return showToast(`${missingField} is required for Cash on Delivery.`, 'error');
-    }
+  if (missingField) {
+    showToast(`${missingField} is required.`, 'error');
+    return;
   }
 
   button.disabled = true;
   button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Placing order...';
 
   try {
+    const orderPayload = {
+      notes: notes,
+      payment_method: paymentMethod,
+
+      recipient_name: deliveryDetails.recipient_name,
+      recipient_phone: deliveryDetails.recipient_phone,
+      delivery_address: `${deliveryDetails.delivery_address}, ${deliveryDetails.delivery_area}`,
+      delivery_area: deliveryDetails.delivery_area,
+      delivery_date: deliveryDetails.delivery_date,
+      delivery_time: deliveryDetails.delivery_time,
+
+      cod_details: paymentMethod === 'Cash on Delivery' ? deliveryDetails : null
+    };
+
     const { data } = await apiFetch('/orders.php?action=place', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        notes: notes,
-        payment_method: paymentMethod,
-        cod_details: paymentMethod === 'Cash on Delivery' ? codDetails : null
-      })
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(orderPayload)
     });
 
-    if (data.success) {
-      cartItems = [];
-      updateCartCount(0);
-
-      if (paymentMethod === 'PayHere Online') {
-        showToast('Redirecting to secure payment...');
-        window.location.href = `${window.API}/payhere_start.php?order_id=${data.order_id}`;
-        return;
-      }
-
-      document.getElementById('cart-content').style.display = 'none';
-      document.getElementById('cart-success').style.display = 'block';
-
-      document.getElementById('success-details').innerHTML =
-        renderSuccessDetails(data, paymentMethod, codDetails, notes);
-    } else {
-      showToast(data.message || 'Order failed.', 'error');
-
-      button.disabled = false;
-      button.innerHTML = '<i class="fa-solid fa-bag-shopping"></i> Place Order';
+    if (!data.success) {
+      throw new Error(data.message || 'Order failed.');
     }
+
+    const orderId = data.order_id;
+
+    if (!orderId) {
+      throw new Error('Order created, but order ID is missing.');
+    }
+
+    if (paymentMethod === 'PayHere Online') {
+      showToast('Redirecting to PayHere...');
+
+  
+      window.location.href = `${window.API}/payhere_start.php?order_id=${orderId}`;
+
+      return;
+    }
+
+    cartItems = [];
+    updateCartCount(0);
+
+    document.getElementById('cart-content').style.display = 'none';
+    document.getElementById('cart-success').style.display = 'block';
+
+    document.getElementById('success-details').innerHTML =
+      renderSuccessDetails(data, paymentMethod, deliveryDetails, notes);
+
   } catch (error) {
     console.error(error);
 
@@ -406,44 +530,18 @@ async function checkout() {
   }
 }
 
-function getCodDetails() {
-  return {
-    recipient_name: document.getElementById('cod-recipient-name').value.trim(),
-    phone: document.getElementById('cod-phone').value.trim(),
-    address: document.getElementById('cod-address').value.trim(),
-    city: document.getElementById('cod-city').value.trim(),
-    delivery_time: document.getElementById('cod-delivery-time').value.trim()
-  };
-}
-
-function validateCodDetails(details) {
-  if (!details.recipient_name) return 'Recipient name';
-  if (!details.phone) return 'Phone number';
-  if (!details.address) return 'Delivery address';
-  if (!details.city) return 'City / area';
-  return '';
-}
-
-function toggleCodDetails() {
-  const paymentMethod = document.getElementById('payment-method').value;
-  document.getElementById('cod-details').style.display =
-    paymentMethod === 'Cash on Delivery' ? 'block' : 'none';
-}
-
-function renderSuccessDetails(order, paymentMethod, codDetails, notes) {
+function renderSuccessDetails(order, paymentMethod, details, notes) {
   const rows = [
     ['Order ID', `#${order.order_id}`],
     ['Total', money(order.total)],
     ['Payment', paymentMethod],
-    ['Recipient', codDetails.recipient_name],
-    ['Phone', codDetails.phone],
-    ['Address', codDetails.address],
-    ['City / area', codDetails.city]
+    ['Recipient', details.recipient_name],
+    ['Phone', details.recipient_phone],
+    ['Address', details.delivery_address],
+    ['City / area', details.delivery_area],
+    ['Delivery date', details.delivery_date],
+    ['Delivery time', details.delivery_time]
   ];
-
-  if (codDetails.delivery_time) {
-    rows.push(['Delivery time', codDetails.delivery_time]);
-  }
 
   if (notes) {
     rows.push(['Notes', notes]);
@@ -462,8 +560,17 @@ function renderSuccessDetails(order, paymentMethod, codDetails, notes) {
   `;
 }
 
-document.addEventListener('DOMContentLoaded', loadCart);
-document.addEventListener('DOMContentLoaded', toggleCodDetails);
+document.addEventListener('DOMContentLoaded', () => {
+  const dateInput = document.getElementById('delivery-date');
+
+  if (dateInput) {
+    dateInput.min = getTodayDate();
+  }
+
+  loadCart();
+  togglePaymentHelp();
+});
 </script>
+
 </body>
 </html>

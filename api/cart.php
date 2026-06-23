@@ -46,7 +46,7 @@ function ensure_cart_schema(mysqli $conn): void {
 
 ensure_cart_schema($conn);
 
-/* ================= ADD TO CART ================= */
+
 if ($action === 'add') {
     try {
         $flowerId = (int)($data['flower_id'] ?? 0);
@@ -173,7 +173,7 @@ if ($action === 'add') {
     }
 }
 
-/* ================= GET CART ================= */
+
 if ($action === 'get') {
     try {
         $stmt = $conn->prepare(
@@ -247,7 +247,7 @@ if ($action === 'get') {
     }
 }
 
-/* ================= COUNT ================= */
+
 if ($action === 'count') {
     $stmt = $conn->prepare(
         "SELECT COALESCE(SUM(quantity), 0) AS count_value
@@ -266,7 +266,7 @@ if ($action === 'count') {
     ]);
 }
 
-/* ================= UPDATE QUANTITY ================= */
+
 if ($action === 'update') {
     $cartId = (int)($data['cart_id'] ?? 0);
     $quantity = (int)($data['quantity'] ?? 0);
@@ -307,7 +307,6 @@ if ($action === 'update') {
     ]);
 }
 
-/* ================= REMOVE ================= */
 if ($action === 'remove' || $action === 'delete') {
     $cartId = (int)($data['cart_id'] ?? $data['id'] ?? 0);
 
@@ -331,7 +330,7 @@ if ($action === 'remove' || $action === 'delete') {
     ]);
 }
 
-/* ================= CLEAR ================= */
+
 if ($action === 'clear') {
     $delete = $conn->prepare(
         "DELETE FROM cart WHERE user_id = ?"

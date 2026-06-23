@@ -44,7 +44,7 @@
 
 <div class="page-header">
   <h1>Flower Catalog</h1>
-  <p>Live flower list with real images from your MySQL database</p>
+  
   <div class="ornament"><i class="fa-solid fa-leaf"></i></div>
 </div>
 
@@ -98,9 +98,7 @@ function renderCatalog(products) {
   }
 
   grid.innerHTML = products.map(product => {
-    const cheapest = product.varieties.length
-      ? Math.min(...product.varieties.map(v => v.price))
-      : Number(product.price);
+    const catalogPrice = Number(product.price);
 
     return `
       <article class="flower-card ${!product.in_stock ? 'out-of-stock' : ''}">
@@ -126,10 +124,21 @@ function renderCatalog(products) {
         </div>
 
         <div class="flower-card-footer">
-          <div class="price">From ${money(cheapest)}</div>
-          <a class="btn-add" href="customize.html">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> Customize
-          </a>
+          <div class="price">${money(catalogPrice)}</div>
+          <div class="catalog-card-actions">
+            <button
+              class="btn-add"
+              type="button"
+              onclick="addToCart(null, ${product.id}, null, 1)"
+              ${!product.in_stock ? 'disabled' : ''}
+            >
+              <i class="fa-solid fa-plus"></i> Add
+            </button>
+
+            <a class="btn-secondary catalog-customize-btn" href="customize.html">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Customize
+            </a>
+          </div>
         </div>
       </article>
     `;

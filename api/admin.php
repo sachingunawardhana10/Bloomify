@@ -5,6 +5,31 @@ require_admin();
 $action = $_GET['action'] ?? '';
 $data = request_data();
 
+function admin_column_exists(mysqli $conn, string $table, string $column): bool {
+    $stmt = $conn->prepare(
+        "SELECT COUNT(*) AS count_value
+         FROM INFORMATION_SCHEMA.COLUMNS
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = ?
+           AND COLUMN_NAME = ?"
+    );
+
+    $stmt->bind_param('ss', $table, $column);
+    $stmt->execute();
+
+    $row = $stmt->get_result()->fetch_assoc();
+
+    return (int)$row['count_value'] > 0;
+}
+
+function ensure_user_status_column(mysqli $conn): void {
+    if (!admin_column_exists($conn, 'users', 'is_active')) {
+        $conn->query('ALTER TABLE users ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER role');
+    }
+}
+
+ensure_user_status_column($conn);
+
 if ($action === 'stats') {
     $orders = (int)$conn->query('SELECT COUNT(*) AS c FROM orders')->fetch_assoc()['c'];
     $products = (int)$conn->query('SELECT COUNT(*) AS c FROM flowers')->fetch_assoc()['c'];
@@ -215,7 +240,7 @@ if ($action === 'delete-product') {
 
 if ($action === 'users') {
     $result = $conn->query(
-        'SELECT id, name, email, role, created_at 
+        'SELECT id, name, email, role, is_active, created_at 
          FROM users 
          ORDER BY id DESC'
     );
@@ -224,12 +249,54 @@ if ($action === 'users') {
 
     while ($row = $result->fetch_assoc()) {
         $row['id'] = (int)$row['id'];
+        $row['is_active'] = (int)$row['is_active'];
         $users[] = $row;
     }
 
     json_response([
         'success' => true,
         'users' => $users
+    ]);
+}
+
+if ($action === 'update-user-status') {
+    $id = (int)($data['id'] ?? 0);
+    $isActive = (int)($data['is_active'] ?? 0) === 1 ? 1 : 0;
+
+    if ($id <= 0) {
+        json_response([
+            'success' => false,
+            'message' => 'Invalid customer id.'
+        ], 422);
+    }
+
+    $stmt = $conn->prepare('SELECT id, role FROM users WHERE id = ? LIMIT 1');
+    $stmt->bind_param('i', $id);
+    $stmt->execute();
+
+    $user = $stmt->get_result()->fetch_assoc();
+
+    if (!$user) {
+        json_response([
+            'success' => false,
+            'message' => 'Customer not found.'
+        ], 404);
+    }
+
+    if (strtolower($user['role']) !== 'customer') {
+        json_response([
+            'success' => false,
+            'message' => 'Only customer accounts can be activated or deactivated.'
+        ], 422);
+    }
+
+    $update = $conn->prepare('UPDATE users SET is_active = ? WHERE id = ?');
+    $update->bind_param('ii', $isActive, $id);
+    $update->execute();
+
+    json_response([
+        'success' => true,
+        'message' => $isActive ? 'Customer activated.' : 'Customer deactivated.'
     ]);
 }
 

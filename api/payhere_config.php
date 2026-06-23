@@ -1,18 +1,12 @@
 <?php
-// =======================================================
-// PAYHERE CONFIGURATION
-// Use Sandbox first. Do NOT use real payments while testing.
-// =======================================================
+
 
 define('PAYHERE_MODE', 'sandbox');
 
 // Replace these with your PayHere Sandbox details.
-define('PAYHERE_MERCHANT_ID', '1');
-define('PAYHERE_MERCHANT_SECRET', '2');
+define('PAYHERE_MERCHANT_ID', '1236325');
+define('PAYHERE_MERCHANT_SECRET', 'ODg4NDgwMDgyNDI5NDA1ODk0MDQyOTA3MzkzMzYyMTU2ODk1NDc4');
 
-// For normal localhost testing:
-// return_url works, but notify_url will NOT work properly from PayHere.
-// For real payment status update, use a public URL or tunnel.
 define('BLOOMIFY_PUBLIC_URL', 'http://localhost/bloomify_FINAL/bloomify_final');
 
 define('PAYHERE_CURRENCY', 'LKR');

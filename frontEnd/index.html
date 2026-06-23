@@ -46,9 +46,9 @@
     <p class="hero-eyebrow">Bespoke Floral Studio</p>
     <h1>Create <em>Beautiful</em><br>Bouquets</h1>
     <p>
-      Personalised flower bouquets crafted around your emotions and occasions —
-      delivered fresh, arranged with love, and made to feel special.
+      Personalised flower bouquets crafted around your emotions and occasions and made to feel special.
     </p>
+    <br>
 
     <div class="hero-cta">
       <a href="catalog.html" class="btn-primary">
@@ -76,14 +76,22 @@
   </div>
 
   <div class="hero-image-wrap fade-up">
-    <img src="images/heroImage.jpg" alt="Beautiful flower bouquet">
-
-    <div class="hero-badge">
-      <div class="hero-badge-icon">🌹</div>
-      <div>
-        <strong>Hand-Crafted</strong>
-        <span>Every bouquet is unique</span>
+    <div class="carousel">
+      <div class="carousel-slide fade-slide active">
+        <img src="images/flowers/flower1.jpg" alt="Beautiful pink flower bouquet">
       </div>
+      <div class="carousel-slide fade-slide">
+        <img src="images/flowers/flower2.jpg" alt="Beautiful rose bouquet">
+      </div>
+      <div class="carousel-slide fade-slide">
+        <img src="images/flowers/flower3.jpg" alt="Beautiful bouquet arrangement">
+      </div>
+    </div>
+
+    <div class="carousel-dots">
+      <span class="dot active" onclick="currentSlide(1)"></span>
+      <span class="dot" onclick="currentSlide(2)"></span>
+      <span class="dot" onclick="currentSlide(3)"></span>
     </div>
   </div>
 </section>

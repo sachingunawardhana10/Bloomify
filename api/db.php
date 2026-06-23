@@ -1,5 +1,5 @@
 <?php
-// Bloomify shared API bootstrap: session + CORS + database + helpers.
+
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
 error_reporting(E_ALL);
@@ -29,8 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// XAMPP default is root with empty password.
-// If your MySQL password is root123, change this to: $dbPass = 'root123';
+
 $dbHost = 'localhost';
 $dbUser = 'root';
 $dbPass = 'root123';

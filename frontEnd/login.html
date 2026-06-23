@@ -33,57 +33,90 @@
 </header>
 
 <main class="login-page">
-  <section class="login-card fade-up">
-    <div class="login-logo">Bloom<span>ify</span></div>
-    <p class="login-sub">Sign in or create an account to manage your cart</p>
-
-    <div class="auth-tabs">
-      <button class="auth-tab active" id="login-tab" onclick="switchAuthTab('login')">Sign In</button>
-      <button class="auth-tab" id="register-tab" onclick="switchAuthTab('register')">Create Account</button>
+  <section class="login-shell fade-up">
+    <div class="login-art" aria-hidden="true">
+      <div class="login-art-copy">
+        <span>Bloomify</span>
+        <h1>Fresh blooms, thoughtfully arranged.</h1>
+        <p>Sign in to continue your cart, custom bouquets, and orders.</p>
+      </div>
     </div>
 
-    <div id="auth-msg" class="auth-message"></div>
-
-    <form class="auth-form active" id="form-login" onsubmit="handleLogin(event)">
-      <div class="form-group">
-        <label for="login-email">Email Address</label>
-        <input type="email" id="login-email" placeholder="admin@bloomify.com" autocomplete="email" required>
+    <section class="login-card">
+      <div class="login-card-head">
+        <div class="login-logo">Bloom<span>ify</span></div>
+        <p class="login-sub">Welcome back. Choose how you want to continue.</p>
       </div>
 
-      <div class="form-group">
-        <label for="login-password">Password</label>
-        <input type="password" id="login-password" placeholder="admin123" autocomplete="current-password" required>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="login-tab" onclick="switchAuthTab('login')">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i>
+          Sign In
+        </button>
+        <button class="auth-tab" id="register-tab" onclick="switchAuthTab('register')">
+          <i class="fa-solid fa-user-plus"></i>
+          Create Account
+        </button>
       </div>
 
-      <button class="btn-primary" style="width:100%;" id="login-btn" type="submit">
-        <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In
-      </button>
+      <div id="auth-msg" class="auth-message"></div>
 
-      <p class="login-footer">
-        Demo admin: <strong>admin@bloomify.com</strong> / <strong>admin123</strong>
-      </p>
-    </form>
+      <form class="auth-form active" id="form-login" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label for="login-email">Email Address</label>
+          <div class="input-shell">
+            <i class="fa-regular fa-envelope"></i>
+            <input type="email" id="login-email" placeholder="admin@bloomify.com" autocomplete="email" required>
+          </div>
+        </div>
 
-    <form class="auth-form" id="form-register" onsubmit="handleRegister(event)">
-      <div class="form-group">
-        <label for="reg-name">Full Name</label>
-        <input type="text" id="reg-name" placeholder="Your name" autocomplete="name" required>
-      </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <div class="input-shell">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="login-password" placeholder="admin123" autocomplete="current-password" required>
+          </div>
+        </div>
 
-      <div class="form-group">
-        <label for="reg-email">Email Address</label>
-        <input type="email" id="reg-email" placeholder="hello@example.com" autocomplete="email" required>
-      </div>
+        <button class="btn-primary login-submit" id="login-btn" type="submit">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In
+        </button>
 
-      <div class="form-group">
-        <label for="reg-password">Password</label>
-        <input type="password" id="reg-password" placeholder="Minimum 6 characters" autocomplete="new-password" required minlength="6">
-      </div>
+        <p class="login-footer">
+          Demo admin: <strong>admin@bloomify.com</strong> / <strong>admin123</strong>
+        </p>
+      </form>
 
-      <button class="btn-primary" style="width:100%;" id="reg-btn" type="submit">
-        <i class="fa-solid fa-user-plus"></i> Create Account
-      </button>
-    </form>
+      <form class="auth-form" id="form-register" onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label for="reg-name">Full Name</label>
+          <div class="input-shell">
+            <i class="fa-regular fa-user"></i>
+            <input type="text" id="reg-name" placeholder="Your name" autocomplete="name" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-email">Email Address</label>
+          <div class="input-shell">
+            <i class="fa-regular fa-envelope"></i>
+            <input type="email" id="reg-email" placeholder="hello@example.com" autocomplete="email" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reg-password">Password</label>
+          <div class="input-shell">
+            <i class="fa-solid fa-lock"></i>
+            <input type="password" id="reg-password" placeholder="Minimum 6 characters" autocomplete="new-password" required minlength="6">
+          </div>
+        </div>
+
+        <button class="btn-primary login-submit" id="reg-btn" type="submit">
+          <i class="fa-solid fa-user-plus"></i> Create Account
+        </button>
+      </form>
+    </section>
   </section>
 </main>
 
